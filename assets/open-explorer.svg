@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="60" viewBox="0 0 480 60" role="img" aria-label="Try the Explorer in your browser">
+  <title>Try the Explorer in your browser</title>
+  <rect x="1" y="1" width="478" height="58" rx="7" fill="#1b4f9c" stroke="#0f284b" stroke-width="2"/>
+  <circle cx="38" cy="30" r="16" fill="#ffffff"/>
+  <path d="M33 21.5 L47 30 L33 38.5 Z" fill="#1b4f9c"/>
+  <text x="68" y="37" font-family="Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">Try the Explorer in your browser</text>
+</svg>

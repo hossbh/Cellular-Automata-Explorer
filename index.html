@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<!-- Cellular Automata Workbench · Copyright (c) 2026 Hossein Basereh · All rights reserved -->
-<title>Cellular Automata Workbench</title>
+<!-- Cellular Automata Explorer · Copyright (c) 2026 Hossein Basereh · All rights reserved -->
+<title>Cellular Automata Explorer</title>
 <meta name="description" content="Interactive 3-D cellular automata explorer: 3-D life-like rules with decay states, 2-D rules stacked through time, and Wolfram's elementary rules. Change the rule, draw a seed and watch structure emerge.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap">
 <style>
-/* Same drawing language as the analysis workbenches: a title block across the top, a sticky setup sheet on the
+/* Same drawing language as the engineering analysis tools: a title block across the top, a sticky setup sheet on the
    left and a column of numbered figure plates. Light theme = green computation pad; dark theme = blueprint. */
 :root {
   --paper: #e6ede0; --sheet: #f7f9f3; --field: #ffffff; --card: #eef3e8;
@@ -325,7 +325,7 @@ h3.sub { margin: 18px 0 0; font-size: 11px; font-weight: 650; letter-spacing: .1
   <header class="tb">
     <div class="tb-name">
       <p class="kicker">Complex systems · 3-D cellular automata · live simulator</p>
-      <h1>Cellular Automata Workbench</h1>
+      <h1>Cellular Automata Explorer</h1>
       <p class="tb-sub">Every cell follows the same short rule, looking only at its neighbours, yet crystals, clouds, gliders and fractals appear. Pick a case, press play, then change one number and see what happens.</p>
     </div>
     <dl class="tb-grid">
@@ -444,7 +444,7 @@ h3.sub { margin: 18px 0 0; font-size: 11px; font-weight: 650; letter-spacing: .1
           <div class="lc"><h3>Four classes of behaviour</h3>
             <ol><li><b>Uniform</b>: everything dies or fills (Class 1).</li><li><b>Periodic</b>: settles into still or repeating structures (Class 2).</li><li><b>Chaotic</b>: random-looking forever (Class 3, e.g. Rule 30).</li><li><b>Complex</b>: localised structures that move and interact (Class 4, e.g. Rule 110 and Life).</li></ol>
             <p style="margin-top:8px">This scheme, proposed by Stephen Wolfram, is descriptive, not exact. Fig. 2 makes a quick guess for the current run.</p></div>
-          <div class="lc"><h3>Using the workbench</h3>
+          <div class="lc"><h3>Using the Explorer</h3>
             <ul><li><kbd>Space</kbd> play or pause · <kbd>→</kbd> one step · <kbd>R</kbd> restart · <kbd>F</kbd> fit view</li>
               <li>Click a cell in Fig. 1 to see its neighbour count and what the rule does with it.</li>
               <li>Draw your own seed in Fig. 4, then press <b>Use as seed</b> so that <b>Restart</b> returns to it.</li>
@@ -1762,11 +1762,11 @@ function setPlaying(p) {
   if (p && G.mode !== '1d' && sim.occ === 0) { playing = false; setPlaying(false); toast('Nothing is alive. Restart, or draw some cells in Fig. 4.'); return; }
   uiDirty = true;
 }
-function dismissHint() { const h = $('v3hint'); if (!h.hidden) { h.hidden = true; lsSet('caw-hint', '1'); } }
+function dismissHint() { const h = $('v3hint'); if (!h.hidden) { h.hidden = true; lsSet('cae-hint', '1'); } }
 function applyTheme(t) {
   G.theme = t;
   if (t === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
-  lsSet('caw-theme', t); segBind('themeSeg', t, applyTheme); readTheme();
+  lsSet('cae-theme', t); segBind('themeSeg', t, applyTheme); readTheme();
 }
 function bindStatic() {
   $('playBtn').onclick = () => setPlaying(!playing);
@@ -1780,7 +1780,7 @@ function bindStatic() {
   $('tFloor').onchange = (e) => { G.floor = e.target.checked; if (V.floorObj) V.floorObj.visible = G.floor; camDirty = true; };
   $('tSpin').onchange = (e) => { G.spin = e.target.checked; };
   $('hintX').onclick = dismissHint;
-  if (lsGet('caw-hint')) $('v3hint').hidden = true;
+  if (lsGet('cae-hint')) $('v3hint').hidden = true;
   $('linkBtn').onclick = copyLink; $('pngBtn').onclick = savePNG;
   $('xps').innerHTML = EXPERIMENTS.map(([id, t, q]) => `<div class="xp"><h4>${esc(t)}</h4><p>${esc(q)}</p><button class="btn" data-case="${id}">Load “${esc(CASE_BY_ID[id].name)}”</button></div>`).join('');
   $('xps').addEventListener('click', (e) => { const b = e.target.closest('[data-case]'); if (!b) return; applyCase(b.dataset.case); $('fig1').scrollIntoView({ behavior: 'smooth' }); });
@@ -1815,7 +1815,7 @@ function frame(now) {
 /* =====================================================================
    Start
    ===================================================================== */
-const th = lsGet('caw-theme');
+const th = lsGet('cae-theme');
 G.theme = th === 'light' || th === 'dark' ? th : 'auto';
 if (G.theme !== 'auto') document.documentElement.dataset.theme = G.theme;
 segBind('themeSeg', G.theme, applyTheme);

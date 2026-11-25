@@ -1,10 +1,20 @@
-# Cellular Automata Workbench
+<h1 align="center">Cellular Automata Explorer</h1>
+
+<p align="center">
+  <a href="https://hossbh.github.io/Cellular-Automata-Explorer/"><img src="assets/open-explorer.svg" alt="Try the Explorer in your browser" width="480"></a>
+</p>
+
+<p align="center">
+  <b>Live:</b> <a href="https://hossbh.github.io/Cellular-Automata-Explorer/"><b>hossbh.github.io/Cellular-Automata-Explorer</b></a><br>
+  Runs in your browser. Nothing to install or download.
+</p>
+
+<p align="center">
+  <a href="https://hossbh.github.io/Cellular-Automata-Explorer/"><img src="assets/explorer-banner.jpg" alt="Three cellular automata rendered in 3-D: a symmetric shell grown in a 3-D volume, a glider gun's history stacked through time, and Rule 30 wrapped onto a cylinder" width="100%"></a>
+  <br><sub>Click the picture or the button to open the live Explorer.</sub>
+</p>
 
 An interactive 3-D explorer for cellular automata, built for learning and experimenting. Every cell follows the same short rule, looking only at its neighbours, yet crystals, clouds, gliders and fractals appear. Pick a case, press play, then change one number and see what happens.
-
-**Open it:** [hossbh.github.io/Cellular-Automata-Workbench](https://hossbh.github.io/Cellular-Automata-Workbench/)
-
-It is a single HTML file with no build step. Open `index.html` in any modern browser with an internet connection (three.js and the fonts load from CDNs).
 
 ## Three kinds of automaton
 
@@ -25,6 +35,10 @@ It is a single HTML file with no build step. Open `index.html` in any modern bro
 - **Share:** *Copy link* stores the rule and settings in the URL; *Save image* downloads the 3-D view as a PNG.
 
 Keyboard: <kbd>Space</kbd> play or pause · <kbd>→</kbd> one step · <kbd>R</kbd> restart · <kbd>F</kbd> fit the view.
+
+## Run it locally
+
+The Explorer is a single HTML file with no build step. Download `index.html` and open it in any modern browser with an internet connection (three.js and the fonts load from CDNs).
 
 ## How it works
 
