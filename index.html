@@ -1,0 +1,1845 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- Cellular Automata Workbench · Copyright (c) 2026 Hossein Basereh · All rights reserved -->
+<title>Cellular Automata Workbench</title>
+<meta name="description" content="Interactive 3-D cellular automata explorer: 3-D life-like rules with decay states, 2-D rules stacked through time, and Wolfram's elementary rules. Change the rule, draw a seed and watch structure emerge.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Same drawing language as the analysis workbenches: a title block across the top, a sticky setup sheet on the
+   left and a column of numbered figure plates. Light theme = green computation pad; dark theme = blueprint. */
+:root {
+  --paper: #e6ede0; --sheet: #f7f9f3; --field: #ffffff; --card: #eef3e8;
+  --grid: rgba(54, 108, 72, .075); --grid-major: rgba(54, 108, 72, .15); --grid-line: rgba(54, 108, 72, .14);
+  --rule: #c9d4c3; --rule-2: #9eae98;
+  --ink: #18211b; --ink-2: #445047; --ink-3: #66726a;
+  --blue: #1b4f9c; --red: #b0361f; --hl: #c48400; --ok: #26743f; --warn: #94620a; --bad: #b0361f; --info: #1b4f9c;
+  --pos-fill: rgba(27, 79, 156, .14); --hl-soft: rgba(214, 150, 10, .2);
+  --v3bg: #eef3e9; --v3bg2: #d9e3d2; --cell-plain: #d9e2d4; --box3d: #66726a; --floor1: #9eae98; --floor2: #c9d4c3;
+  --f-ui: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-math: "STIX Two Text", "Latin Modern Roman", "Times New Roman", serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0b1f3c; --sheet: #0f284b; --field: #0a2242; --card: #0d2546;
+    --grid: rgba(140, 186, 255, .055); --grid-major: rgba(140, 186, 255, .11); --grid-line: rgba(160, 200, 255, .12);
+    --rule: #23436d; --rule-2: #3a5f92;
+    --ink: #eaf2ff; --ink-2: #b9cbe8; --ink-3: #8aa1c6;
+    --blue: #8fc4ff; --red: #ff9b85; --hl: #ffcf5c; --ok: #7edb9c; --warn: #ffcf5c; --bad: #ff9b85; --info: #8fc4ff;
+    --pos-fill: rgba(143, 196, 255, .18); --hl-soft: rgba(255, 207, 92, .2);
+    --v3bg: #0d2647; --v3bg2: #081a33; --cell-plain: #8fb3e0; --box3d: #6f8db5; --floor1: #3a5f92; --floor2: #1d3a62;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0b1f3c; --sheet: #0f284b; --field: #0a2242; --card: #0d2546;
+  --grid: rgba(140, 186, 255, .055); --grid-major: rgba(140, 186, 255, .11); --grid-line: rgba(160, 200, 255, .12);
+  --rule: #23436d; --rule-2: #3a5f92;
+  --ink: #eaf2ff; --ink-2: #b9cbe8; --ink-3: #8aa1c6;
+  --blue: #8fc4ff; --red: #ff9b85; --hl: #ffcf5c; --ok: #7edb9c; --warn: #ffcf5c; --bad: #ff9b85; --info: #8fc4ff;
+  --pos-fill: rgba(143, 196, 255, .18); --hl-soft: rgba(255, 207, 92, .2);
+  --v3bg: #0d2647; --v3bg2: #081a33; --cell-plain: #8fb3e0; --box3d: #6f8db5; --floor1: #3a5f92; --floor2: #1d3a62;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: 56px; }
+body {
+  margin: 0; font-family: var(--f-ui); font-size: 14px; line-height: 1.45; color: var(--ink);
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--grid-major) 1px, transparent 1px), linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
+    linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+}
+.page { max-width: 1680px; margin: 0 auto; padding: 18px max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px)); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.num { font-family: var(--f-math); font-variant-numeric: tabular-nums; white-space: nowrap; }
+i.m, .mi { font-family: var(--f-math); font-style: italic; }
+
+/* ---------- title block ---------- */
+.tb { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 580px); border: 1.5px solid var(--ink); background: var(--sheet); }
+.tb-name { padding: 16px 20px 18px; border-right: 1.5px solid var(--ink); min-width: 0; }
+.kicker { margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; font-stretch: 85%; color: var(--blue); }
+.tb h1 { margin: 0; font-size: clamp(25px, 3vw, 38px); line-height: 1.02; font-weight: 760; font-stretch: 115%; letter-spacing: .01em; text-transform: uppercase; text-wrap: balance; }
+.tb-sub { margin: 8px 0 0; max-width: 70ch; color: var(--ink-2); font-size: 13.5px; }
+.tb-grid { margin: 0; display: grid; grid-template-columns: 1fr 1fr; }
+.tb-c { padding: 10px 14px; border-bottom: 1px solid var(--rule-2); border-right: 1px solid var(--rule-2); min-width: 0; }
+.tb-c:nth-child(2n) { border-right: 0; }
+.tb-c:nth-child(n+3) { border-bottom: 0; }
+.tb-c dt { font-size: 10.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); font-stretch: 85%; margin-bottom: 5px; }
+.tb-c dd { margin: 0; font-size: 13.5px; font-weight: 550; min-width: 0; }
+.tb-rule { font-family: var(--f-math); font-size: 15px; font-weight: 400; overflow-wrap: anywhere; }
+.tb-beh { font-size: 12.5px; font-weight: 450; color: var(--ink-2); display: flex; gap: 6px 8px; align-items: center; flex-wrap: wrap; }
+@media (max-width: 900px) { .tb { grid-template-columns: minmax(0, 1fr); } .tb-name { border-right: 0; border-bottom: 1.5px solid var(--ink); } }
+@media (max-width: 520px) { .tb-grid { grid-template-columns: minmax(0, 1fr); } .tb-c { border-right: 0 !important; border-bottom: 1px solid var(--rule-2) !important; } .tb-c:last-child { border-bottom: 0 !important; } }
+
+/* ---------- jump bar ---------- */
+.jump { position: sticky; top: 0; z-index: 6; display: flex; gap: 2px; align-items: center; background: var(--paper); border-bottom: 1px solid var(--rule-2); padding: 6px 0; margin-top: 12px; }
+.jump-l { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; min-width: 0; flex: 1 1 auto; }
+.jump-l::-webkit-scrollbar { display: none; }
+.jump a { flex: none; font-size: 11.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; font-stretch: 88%; padding: 6px 10px; color: var(--ink-2); text-decoration: none; border-radius: 2px; }
+.jump a:hover { background: var(--sheet); color: var(--blue); }
+.jump-r { display: flex; gap: 8px; align-items: center; flex: none; padding-left: 8px; }
+@media (max-width: 700px) { .jump { flex-wrap: wrap; position: static; } .jump-r { padding-left: 0; } }
+#colorSeg { overflow-x: auto; scrollbar-width: none; }
+#colorSeg::-webkit-scrollbar { display: none; }
+
+/* ---------- layout ---------- */
+.wb { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; margin-top: 18px; align-items: start; }
+.setup { background: var(--sheet); border: 1px solid var(--rule); border-radius: 3px; overscroll-behavior: contain; }
+.results { min-width: 0; display: flex; flex-direction: column; gap: 16px; container-type: inline-size; }
+@media (min-width: 1100px) {
+  .wb { grid-template-columns: 340px minmax(0, 1fr); }
+  .setup { position: sticky; top: 56px; max-height: calc(100vh - 68px); overflow-y: auto; scrollbar-width: thin; }
+}
+
+/* ---------- setup groups ---------- */
+.grp { border-bottom: 1px solid var(--rule); }
+.grp:last-child { border-bottom: 0; }
+.grp-h { list-style: none; cursor: pointer; display: flex; align-items: baseline; gap: 10px; padding: 13px 16px 11px; user-select: none; }
+.grp-h::-webkit-details-marker { display: none; }
+.grp-h::after { content: "–"; margin-left: auto; color: var(--ink-3); font-weight: 600; }
+.grp:not([open]) .grp-h::after { content: "+"; }
+.grp-n { font-family: var(--f-math); font-size: 14px; color: var(--blue); }
+.grp-t { font-size: 12px; font-weight: 650; letter-spacing: .09em; text-transform: uppercase; font-stretch: 85%; }
+.grp-b { padding: 2px 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+.lbl { font-size: 10.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); font-stretch: 85%; display: flex; align-items: center; gap: 6px; }
+.lbl .k { font-family: var(--f-math); font-size: 13px; letter-spacing: 0; text-transform: none; font-weight: 600; }
+.lbl .k.b { color: var(--ok); } .lbl .k.s { color: var(--blue); }
+.hint { margin: 0; font-size: 12px; color: var(--ink-3); line-height: 1.45; }
+.hint.bad { color: var(--bad); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.row > .grow { flex: 1 1 0; min-width: 0; }
+
+.fld { display: grid; grid-template-columns: 52px minmax(0, 1fr) 76px; align-items: center; column-gap: 8px; row-gap: 2px; }
+.fld-l { font-size: 14px; white-space: nowrap; font-family: var(--f-math); }
+.fld-l.t { font-family: var(--f-ui); font-size: 12px; color: var(--ink-2); }
+.fld-i, .sel { height: 30px; width: 100%; min-width: 0; border: 1px solid var(--rule); background: var(--field); border-radius: 2px; padding: 0 8px; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.fld-i:hover, .sel:hover { border-color: var(--rule-2); }
+.fld-i:focus { outline: 2px solid var(--blue); outline-offset: -1px; }
+.fld-i.bad { border-color: var(--bad); outline-color: var(--bad); }
+.fld-i.mono { font-family: var(--f-math); font-size: 15px; }
+.fld-u { font-size: 12px; color: var(--ink-3); line-height: 1.2; }
+.fld-s { grid-column: 2 / 4; }
+.sel { padding: 0 6px; font-size: 13px; }
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 16px; background: transparent; margin: 0; cursor: pointer; }
+input[type="range"]::-webkit-slider-runnable-track { height: 2px; background: var(--rule-2); }
+input[type="range"]::-moz-range-track { height: 2px; background: var(--rule-2); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 9px; height: 15px; margin-top: -6.5px; background: var(--blue); border: 1px solid var(--sheet); border-radius: 1px; }
+input[type="range"]::-moz-range-thumb { width: 8px; height: 14px; background: var(--blue); border: 1px solid var(--sheet); border-radius: 1px; }
+
+.btn { height: 30px; padding: 0 12px; border: 1px solid var(--rule-2); background: var(--field); border-radius: 2px; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.btn:hover { border-color: var(--blue); color: var(--blue); }
+.btn:disabled { opacity: .45; cursor: default; color: inherit; border-color: var(--rule-2); }
+.btn.on, .btn.primary { background: var(--ink); color: var(--sheet); border-color: var(--ink); }
+.btn.primary:hover { background: var(--blue); border-color: var(--blue); color: var(--sheet); }
+.btn svg { width: 12px; height: 12px; fill: currentColor; }
+.seg { display: inline-flex; border: 1px solid var(--rule-2); border-radius: 2px; overflow: hidden; vertical-align: middle; max-width: 100%; }
+.seg.wide { display: flex; }
+.seg.wide .seg-b { flex: 1; padding: 0 6px; }
+.seg-b { border: 0; border-right: 1px solid var(--rule); background: var(--field); color: var(--ink-2); padding: 0 10px; height: 28px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.seg-b:last-child { border-right: 0; }
+.seg-b.on { background: var(--ink); color: var(--sheet); }
+.seg-b:hover:not(.on) { color: var(--blue); }
+.seg-b .sw { display: block; height: 3px; margin: 2px -4px -1px; border-radius: 1px; }
+.cmseg .seg-b { height: 32px; line-height: 1.1; }
+.tgl { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--ink-2); position: relative; user-select: none; }
+.tgl input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.tgl-box { width: 16px; height: 16px; border: 1.5px solid var(--ink-2); border-radius: 2px; flex: none; position: relative; background: var(--field); }
+.tgl input:checked + .tgl-box { background: var(--blue); border-color: var(--blue); }
+.tgl input:checked + .tgl-box::after { content: ""; position: absolute; left: 4.5px; top: 1px; width: 4px; height: 8px; border: solid var(--sheet); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.tgl input:focus-visible + .tgl-box { outline: 2px solid var(--blue); outline-offset: 2px; }
+.tgl.dis { opacity: .45; pointer-events: none; }
+
+.nums { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 3px; }
+.nb { height: 26px; padding: 0; border: 1px solid var(--rule); background: var(--field); color: var(--ink-3); border-radius: 2px; font-family: var(--f-math); font-size: 13.5px; font-variant-numeric: tabular-nums; cursor: pointer; }
+.nb:hover { border-color: var(--rule-2); color: var(--ink); }
+.nb.b.on { background: var(--ok); border-color: var(--ok); color: var(--sheet); }
+.nb.s.on { background: var(--blue); border-color: var(--blue); color: var(--sheet); }
+.r1 { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
+.r1 button { padding: 6px 2px 4px; border: 1px solid var(--rule); background: var(--field); border-radius: 2px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; font-family: var(--f-math); font-size: 11px; color: var(--ink-3); }
+.r1 button:hover { border-color: var(--blue); }
+.r1 svg { width: 100%; max-width: 32px; height: auto; display: block; }
+svg rect.on { fill: var(--ink); }
+svg rect.out { fill: var(--blue); }
+svg rect.off { fill: var(--field); stroke: var(--rule-2); stroke-width: 1; }
+
+/* ---------- plates ---------- */
+.plate { background: var(--sheet); border: 1px solid var(--rule); border-radius: 3px; padding: 14px 18px 18px; scroll-margin-top: 56px; min-width: 0; }
+.plate-h { display: flex; align-items: baseline; gap: 6px 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.fig { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-stretch: 85%; color: var(--blue); }
+.plate h2 { margin: 0; font-size: 17px; font-weight: 650; font-stretch: 94%; text-wrap: balance; }
+.tools { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.tools.left { margin-left: 0; }
+.vsep { width: 1px; height: 22px; background: var(--rule); margin: 0 2px; }
+.cap { margin: 10px 0 0; font-size: 12.5px; color: var(--ink-3); max-width: 100ch; }
+.intro { margin: 0 0 12px; padding: 8px 12px; border-left: 3px solid var(--blue); background: var(--card); max-width: 130ch; font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+.intro b { color: var(--ink); font-weight: 650; }
+.chip { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 10px; font-size: 11px; font-weight: 650; letter-spacing: .02em; border: 1px solid currentColor; white-space: nowrap; vertical-align: middle; }
+.chip.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.chip.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+.chip.bad { color: var(--bad); background: color-mix(in srgb, var(--bad) 13%, transparent); }
+.chip.info { color: var(--info); background: color-mix(in srgb, var(--info) 11%, transparent); }
+
+/* ---------- Fig 1: 3-D view ---------- */
+.v3top { display: flex; gap: 8px 16px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.v3top .tools { gap: 6px 8px; }
+.speed { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); }
+.speed input { width: 110px; }
+.speed .num { min-width: 52px; }
+.v3host { position: relative; overflow: hidden; border: 1px solid var(--rule); border-radius: 2px; height: clamp(380px, 66vh, 800px); touch-action: none;
+  background: radial-gradient(120% 90% at 50% 35%, var(--v3bg), var(--v3bg2)); }
+.v3host canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+.v3host canvas:active { cursor: grabbing; }
+.v3msg { position: absolute; inset: 0; display: grid; place-items: center; padding: 20px; text-align: center; color: var(--ink-2); font-size: 13.5px; }
+.v3hud { position: absolute; right: 8px; top: 8px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px 14px; max-width: calc(100% - 16px); padding: 5px 10px; font-size: 12.5px; color: var(--ink-2);
+  background: color-mix(in srgb, var(--sheet) 86%, transparent); border: 1px solid var(--rule-2); pointer-events: none; }
+.v3hud b { font-family: var(--f-math); font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; margin-left: 4px; }
+.v3hud .run { display: inline-flex; align-items: center; gap: 6px; }
+.v3hud .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
+.v3hud .dot.on { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent); }
+.gizmo { position: absolute; left: 6px; bottom: 6px; width: 70px; height: 70px; pointer-events: none; overflow: visible; }
+.gizmo line { stroke-width: 1.6; stroke-linecap: round; }
+.gizmo text { font: italic 12px var(--f-math); dominant-baseline: middle; text-anchor: middle; }
+.v3tip { position: absolute; z-index: 3; pointer-events: none; background: var(--ink); color: var(--sheet); font-size: 12.5px; line-height: 1.45; padding: 6px 10px 7px; border-radius: 2px; max-width: 290px; box-shadow: 0 6px 20px rgba(0,0,0,.18); }
+.v3tip b { font-weight: 650; }
+.v3tip .n { font-family: var(--f-math); }
+.v3tip .yes { color: color-mix(in srgb, var(--ok) 55%, var(--sheet)); font-weight: 650; }
+.v3tip .no { color: color-mix(in srgb, var(--bad) 55%, var(--sheet)); font-weight: 650; }
+.v3hint { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; max-width: calc(100% - 24px); padding: 6px 6px 6px 12px; font-size: 12.5px; color: var(--sheet); background: var(--ink); border-radius: 2px; }
+.v3hint button { border: 0; background: transparent; color: var(--sheet); cursor: pointer; font-size: 16px; line-height: 1; padding: 2px 6px; }
+.cbar { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; }
+.cbar canvas { border: 1px solid var(--rule-2); width: 220px; height: 10px; max-width: 40vw; }
+.cb-n { font-size: 13px; color: var(--ink-2); }
+.cb-t { font-family: var(--f-math); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.cb-r { margin-left: auto; color: var(--ink-3); }
+.pchips { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 10px; }
+.pchip { display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 11px 0 3px; border: 1px solid var(--rule-2); border-radius: 13px; font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
+.pchip i { width: 20px; height: 20px; border-radius: 50%; border: 1.2px solid var(--ink-2); display: grid; place-items: center; font: italic 12px var(--f-math); color: var(--ink); }
+.pchip .num { color: var(--ink); }
+
+/* ---------- Fig 2 ---------- */
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+.tile { background: var(--sheet); padding: 11px 14px 12px; min-width: 0; }
+@container (max-width: 760px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tile-l { font-size: 10.5px; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); font-stretch: 85%; }
+.tile-v { margin: 6px 0 4px; font-size: 19px; font-family: var(--f-math); font-variant-numeric: tabular-nums; min-height: 26px; display: flex; align-items: center; gap: 8px; }
+.tile-v .chip { font-family: var(--f-ui); font-size: 11.5px; height: 22px; }
+.tile-s { font-size: 12px; color: var(--ink-3); }
+.chart { margin-top: 12px; position: relative; }
+.chart svg { display: block; width: 100%; touch-action: pan-y; cursor: crosshair; }
+.mt { font-family: var(--f-math); fill: var(--ink-2); font-size: 12px; }
+.mt.tick { font-size: 11px; fill: var(--ink-3); }
+.mt.lab { font-family: var(--f-ui); font-size: 10.5px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; fill: var(--ink-3); }
+.gl { stroke: var(--grid-line); stroke-width: 1; }
+.axis { stroke: var(--ink-3); stroke-width: 1; }
+.c-alive { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linejoin: round; }
+.c-area { fill: var(--pos-fill); }
+.c-b { fill: none; stroke: var(--ok); stroke-width: 1.3; stroke-linejoin: round; }
+.c-d { fill: none; stroke: var(--bad); stroke-width: 1.3; stroke-linejoin: round; }
+.hover-l { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 2 3; }
+.plot-r { font-size: 12.5px; color: var(--ink-2); }
+.plot-r b { font-family: var(--f-math); font-weight: 600; color: var(--ink); }
+.leg { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-3); }
+.leg i { width: 14px; height: 2px; display: inline-block; }
+
+/* ---------- Fig 3 ---------- */
+.f3 { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px 28px; align-items: start; }
+@container (max-width: 760px) { .f3 { grid-template-columns: minmax(0, 1fr); } }
+.f3 h3, .lc h3 { margin: 0 0 8px; font-size: 11px; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; font-stretch: 85%; color: var(--ink-3); }
+.f3 svg { display: block; max-width: 100%; height: auto; }
+.f3-wide { grid-column: 1 / -1; }
+.f3-text { font-size: 13.5px; color: var(--ink-2); max-width: 90ch; margin: 0; }
+.f3-text b { color: var(--ink); }
+.nh { fill: var(--field); stroke: var(--rule-2); stroke-width: 1; }
+.nh.in { fill: color-mix(in srgb, var(--blue) 32%, var(--field)); stroke: var(--blue); }
+.nh.self { fill: var(--ink); stroke: var(--ink); }
+.lc-node { fill: var(--field); stroke: var(--ink-2); stroke-width: 1.3; }
+.lc-node.alive { fill: var(--ink); stroke: var(--ink); }
+.lc-t { font: 12px var(--f-ui); font-weight: 600; fill: var(--ink); text-anchor: middle; dominant-baseline: middle; }
+.lc-t.inv { fill: var(--sheet); }
+.lc-e { fill: none; stroke: var(--ink-2); stroke-width: 1.3; }
+.lc-el { font: italic 12px var(--f-math); fill: var(--ink-2); text-anchor: middle; }
+.ahf { fill: var(--ink-2); }
+.strip rect.c { stroke: var(--rule); stroke-width: 1; fill: var(--field); cursor: pointer; }
+.strip rect.c.b { fill: var(--ok); stroke: var(--ok); }
+.strip rect.c.s { fill: var(--blue); stroke: var(--blue); }
+.strip rect.c:hover { stroke: var(--ink); }
+.strip .hl { fill: none; stroke: var(--hl); stroke-width: 2.2; }
+.strip text { font: 12px var(--f-math); fill: var(--ink-3); text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
+.strip text.rl { font: 600 11px var(--f-ui); letter-spacing: .06em; text-anchor: start; text-transform: uppercase; }
+.strip text.on { fill: var(--sheet); }
+.rt button { all: unset; cursor: pointer; }
+.rt-g { cursor: pointer; }
+.rt-g:hover rect.frame { stroke: var(--blue); }
+.rt rect.frame { fill: transparent; stroke: var(--rule); stroke-width: 1; }
+.rt text { font: 12px var(--f-math); fill: var(--ink-3); text-anchor: middle; }
+.rt text.bit { font-size: 15px; fill: var(--ink); }
+
+/* ---------- Fig 4 ---------- */
+.f4 { display: grid; grid-template-columns: minmax(0, 520px) minmax(220px, 1fr); gap: 16px 24px; align-items: start; }
+.f4.one { grid-template-columns: minmax(0, 1fr); }
+@container (max-width: 760px) { .f4 { grid-template-columns: minmax(0, 1fr); } }
+.f4c canvas { display: block; width: 100%; border: 1px solid var(--rule-2); image-rendering: pixelated; touch-action: none; }
+#slCanvas, #rowCanvas { cursor: crosshair; }
+.f4side { display: flex; flex-direction: column; gap: 10px; }
+.f4leg { display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink-3); }
+.f4leg span { display: inline-flex; align-items: center; gap: 6px; }
+.f4leg i { width: 12px; height: 12px; border: 1px solid var(--rule-2); display: inline-block; }
+#rowWrap { margin-top: 12px; }
+#rowWrap .lbl { margin-bottom: 5px; }
+
+/* ---------- Fig 5: learn ---------- */
+.learn { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.lc { border: 1px solid var(--rule); background: var(--card); padding: 12px 14px 13px; border-radius: 2px; font-size: 13px; color: var(--ink-2); }
+.lc p { margin: 0 0 8px; } .lc p:last-child { margin-bottom: 0; }
+.lc ul, .lc ol { margin: 0; padding-left: 18px; } .lc li { margin: 3px 0; }
+.lc b { color: var(--ink); }
+.xps { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; margin-top: 14px; }
+.xp { border: 1px solid var(--rule); border-left: 3px solid var(--hl); background: var(--field); padding: 10px 12px 11px; display: flex; flex-direction: column; gap: 6px; border-radius: 2px; }
+.xp h4 { margin: 0; font-size: 13.5px; font-weight: 650; }
+.xp p { margin: 0; font-size: 12.5px; color: var(--ink-2); flex: 1; }
+.xp .btn { align-self: flex-start; height: 27px; }
+.refs { margin: 14px 0 0; padding-left: 20px; font-size: 12.5px; color: var(--ink-2); }
+.refs li { margin: 3px 0; }
+kbd { font: 600 11px var(--f-ui); border: 1px solid var(--rule-2); border-bottom-width: 2px; border-radius: 3px; padding: 0 5px; background: var(--field); color: var(--ink); }
+h3.sub { margin: 18px 0 0; font-size: 11px; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; font-stretch: 85%; color: var(--ink-3); }
+
+.foot { margin-top: 22px; padding-top: 12px; border-top: 1px solid var(--rule-2); display: flex; gap: 6px 18px; flex-wrap: wrap; font-size: 12px; color: var(--ink-3); }
+.toast { position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 20px); background: var(--ink); color: var(--sheet); padding: 8px 14px; border-radius: 2px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 20; max-width: calc(100vw - 32px); }
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+@media (max-width: 640px) { .v3hud { left: 8px; right: 8px; justify-content: flex-start; font-size: 12px; } .cb-r { margin-left: 0; } .plate { padding: 12px 12px 14px; } }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="tb">
+    <div class="tb-name">
+      <p class="kicker">Complex systems · 3-D cellular automata · live simulator</p>
+      <h1>Cellular Automata Workbench</h1>
+      <p class="tb-sub">Every cell follows the same short rule, looking only at its neighbours, yet crystals, clouds, gliders and fractals appear. Pick a case, press play, then change one number and see what happens.</p>
+    </div>
+    <dl class="tb-grid">
+      <div class="tb-c"><dt>Case library</dt><dd class="row"><select class="sel grow" id="caseSel" aria-label="Case library"></select><button class="btn" id="caseReset" title="Restore this case's original settings">Reset</button></dd></div>
+      <div class="tb-c"><dt>Automaton</dt><dd><div class="seg wide" id="modeSeg">
+        <button class="seg-b" data-v="3d" title="Life-like rules in a 3-D volume">3-D volume</button>
+        <button class="seg-b" data-v="2d" title="A 2-D rule; time is stacked upward">2-D + time</button>
+        <button class="seg-b" data-v="1d" title="An elementary 1-D rule; time runs downward">1-D + time</button></div></dd></div>
+      <div class="tb-c"><dt>Rule</dt><dd class="tb-rule" id="tbRule"></dd></div>
+      <div class="tb-c"><dt>Behaviour</dt><dd class="tb-beh" id="tbBeh"></dd></div>
+    </dl>
+  </header>
+
+  <nav class="jump" aria-label="Sections">
+    <div class="jump-l">
+      <a href="#fig1">3-D view</a><a href="#fig2">Population</a><a href="#fig3">The rule</a><a href="#fig4">Slice &amp; draw</a><a href="#fig5">Learn</a>
+    </div>
+    <div class="jump-r">
+      <div class="seg" id="themeSeg" aria-label="Theme"><button class="seg-b" data-v="auto">Auto</button><button class="seg-b" data-v="light">Light</button><button class="seg-b" data-v="dark">Dark</button></div>
+      <button class="btn" id="linkBtn" title="Copy a link that reopens these settings">Copy link</button>
+      <button class="btn primary" id="pngBtn" title="Save the 3-D view as a PNG image">Save image</button>
+    </div>
+  </nav>
+
+  <div class="wb">
+    <aside class="setup" aria-label="Setup">
+      <details class="grp" open><summary class="grp-h"><span class="grp-n">1</span><span class="grp-t">Rule</span></summary><div class="grp-b" id="gRule"></div></details>
+      <details class="grp" open><summary class="grp-h"><span class="grp-n">2</span><span class="grp-t">Space</span></summary><div class="grp-b" id="gSpace"></div></details>
+      <details class="grp" open><summary class="grp-h"><span class="grp-n">3</span><span class="grp-t">Starting state</span></summary><div class="grp-b" id="gInit"></div></details>
+      <details class="grp" open><summary class="grp-h"><span class="grp-n">4</span><span class="grp-t">Appearance</span></summary><div class="grp-b" id="gLook"></div></details>
+    </aside>
+
+    <main class="results">
+      <!-- Fig 1 -->
+      <section class="plate" id="fig1">
+        <div class="plate-h"><span class="fig">Fig. 1</span><h2 id="f1title">The automaton in 3-D</h2><div class="tools"><div class="seg" id="colorSeg" aria-label="Colour by"></div></div></div>
+        <div class="intro" id="caseNote"></div>
+        <div class="v3top">
+          <div class="tools left">
+            <button class="btn primary" id="playBtn" title="Play / pause (Space)"></button>
+            <button class="btn" id="stepBtn" title="One generation (→)">Step</button>
+            <button class="btn" id="restartBtn" title="Back to generation 0 (R)">Restart</button>
+            <span class="vsep"></span>
+            <button class="btn" data-view="iso">Iso</button><button class="btn" data-view="front">Front</button><button class="btn" data-view="top">Top</button><button class="btn" data-view="side">Side</button><button class="btn" data-view="fit" title="Fit (F)">Fit</button>
+          </div>
+          <div class="tools">
+            <label class="speed"><span>Speed</span><input type="range" id="speed" min="1" max="60" step="1" aria-label="Generations per second"><span class="num" id="speedV"></span></label>
+            <label class="tgl"><input type="checkbox" id="tBox"><span class="tgl-box"></span>Box</label>
+            <label class="tgl"><input type="checkbox" id="tFloor"><span class="tgl-box"></span>Floor</label>
+            <label class="tgl"><input type="checkbox" id="tSpin"><span class="tgl-box"></span>Spin</label>
+          </div>
+        </div>
+        <div class="v3host" id="v3host">
+          <div class="v3hud" id="hud"></div>
+          <svg class="gizmo" id="gizmo" viewBox="0 0 70 70" aria-hidden="true">
+            <line id="gzx" x1="35" y1="35" x2="35" y2="35" style="stroke:var(--red)"/><line id="gzy" x1="35" y1="35" x2="35" y2="35" style="stroke:var(--ok)"/><line id="gzz" x1="35" y1="35" x2="35" y2="35" style="stroke:var(--blue)"/>
+            <text id="gtx" style="fill:var(--red)">x</text><text id="gty" style="fill:var(--ok)">y</text><text id="gtz" style="fill:var(--blue)">z</text>
+          </svg>
+          <div class="v3tip" id="tip" hidden></div>
+          <div class="v3msg" id="v3msg" hidden></div>
+          <div class="v3hint" id="v3hint"><span>Drag to orbit · Shift-drag or right-drag to pan · Scroll to zoom · Click a cell to inspect it</span><button id="hintX" aria-label="Dismiss">×</button></div>
+        </div>
+        <div class="cbar" id="cbar"><span class="cb-n" id="cbName"></span><span class="cb-t" id="cbMin"></span><canvas id="cbCanvas" width="220" height="10"></canvas><span class="cb-t" id="cbMax"></span><span class="cb-r" id="cbNote"></span></div>
+        <div class="pchips" id="pchips"></div>
+      </section>
+
+      <!-- Fig 2 -->
+      <section class="plate" id="fig2">
+        <div class="plate-h"><span class="fig">Fig. 2</span><h2>Population and behaviour</h2><div class="tools"><span class="plot-r" id="popRead"></span></div></div>
+        <div class="tiles">
+          <div class="tile"><div class="tile-l">Generation</div><div class="tile-v" id="tGen"></div><div class="tile-s" id="tGenS"></div></div>
+          <div class="tile"><div class="tile-l">Live cells</div><div class="tile-v" id="tAlive"></div><div class="tile-s" id="tAliveS"></div></div>
+          <div class="tile"><div class="tile-l">Births · deaths</div><div class="tile-v" id="tBD"></div><div class="tile-s">in the last generation</div></div>
+          <div class="tile"><div class="tile-l">Behaviour</div><div class="tile-v" id="tBeh"></div><div class="tile-s" id="tBehS"></div></div>
+        </div>
+        <div class="chart" id="chartWrap"><svg id="popSvg" aria-label="Population over time"></svg></div>
+        <p class="cap">Behaviour is a heuristic. A repeat of the whole state within the last 500 generations means the pattern is fixed or periodic; otherwise the population trend decides between growing, shrinking and still changing. Hover the chart to read any generation.</p>
+      </section>
+
+      <!-- Fig 3 -->
+      <section class="plate" id="fig3">
+        <div class="plate-h"><span class="fig">Fig. 3</span><h2>The rule, explained</h2></div>
+        <div id="f3"></div>
+      </section>
+
+      <!-- Fig 4 -->
+      <section class="plate" id="fig4">
+        <div class="plate-h"><span class="fig">Fig. 4</span><h2 id="f4title">Slice &amp; draw</h2></div>
+        <p class="cap" id="f4cap" style="margin:0 0 12px"></p>
+        <div class="f4" id="f4">
+          <div class="f4c">
+            <canvas id="slCanvas" aria-label="Editable slice"></canvas>
+            <canvas id="stCanvas" aria-label="Space-time diagram"></canvas>
+            <div id="rowWrap"><div class="lbl">Starting row · click to toggle cells</div><canvas id="rowCanvas" aria-label="Editable starting row"></canvas></div>
+          </div>
+          <div class="f4side" id="f4side"></div>
+        </div>
+      </section>
+
+      <!-- Fig 5 -->
+      <section class="plate" id="fig5">
+        <div class="plate-h"><span class="fig">Fig. 5</span><h2>Learn: how cellular automata work</h2></div>
+        <div class="learn">
+          <div class="lc"><h3>What is a cellular automaton?</h3>
+            <p>A grid of cells, each in one of a few <b>states</b>. At every tick of a clock, every cell looks at its <b>neighbourhood</b> and applies the same <b>rule</b> to decide its next state. All cells update at once.</p>
+            <p>Nothing is global: no cell knows the overall shape. The shapes you see are <b>emergent</b>, built only from local interactions.</p></div>
+          <div class="lc"><h3>Reading a rule string</h3>
+            <p><b>B</b> lists the live-neighbour counts at which an empty cell is <b>born</b>; <b>S</b> lists the counts at which a live cell <b>survives</b>. Conway's Life is <span class="num">B3/S23</span>.</p>
+            <p><b>C</b> is the number of states. With <span class="num">C &gt; 2</span>, a cell that fails to survive decays through <span class="num">C − 2</span> dying states before it is empty again. Dying cells don't count as live neighbours. <b>M</b> and <b>VN</b> name the neighbourhood.</p></div>
+          <div class="lc"><h3>Neighbourhoods</h3>
+            <p><b>Moore</b>: every cell that touches the centre, even at a corner (8 in 2-D, 26 in 3-D).</p>
+            <p><b>von Neumann</b>: only the cells that share a face (4 in 2-D, 6 in 3-D). Growth then spreads as a diamond or octahedron, because distance is counted as |x| + |y| + |z|.</p></div>
+          <div class="lc"><h3>Time as a dimension</h3>
+            <p>In <b>2-D + time</b>, each generation is a layer stacked on the one before. A still life becomes a straight column, an oscillator a braided column and a glider a slanted tube.</p>
+            <p>In <b>1-D + time</b>, each row is a generation, as in Wolfram's space-time diagrams. Wrap the row onto a cylinder to see that the edges really are joined.</p></div>
+          <div class="lc"><h3>Four classes of behaviour</h3>
+            <ol><li><b>Uniform</b>: everything dies or fills (Class 1).</li><li><b>Periodic</b>: settles into still or repeating structures (Class 2).</li><li><b>Chaotic</b>: random-looking forever (Class 3, e.g. Rule 30).</li><li><b>Complex</b>: localised structures that move and interact (Class 4, e.g. Rule 110 and Life).</li></ol>
+            <p style="margin-top:8px">This scheme, proposed by Stephen Wolfram, is descriptive, not exact. Fig. 2 makes a quick guess for the current run.</p></div>
+          <div class="lc"><h3>Using the workbench</h3>
+            <ul><li><kbd>Space</kbd> play or pause · <kbd>→</kbd> one step · <kbd>R</kbd> restart · <kbd>F</kbd> fit view</li>
+              <li>Click a cell in Fig. 1 to see its neighbour count and what the rule does with it.</li>
+              <li>Draw your own seed in Fig. 4, then press <b>Use as seed</b> so that <b>Restart</b> returns to it.</li>
+              <li><b>Copy link</b> saves the rule and settings in the URL so you can share a discovery.</li></ul></div>
+        </div>
+        <h3 class="sub">Experiments to try</h3>
+        <div class="xps" id="xps"></div>
+        <h3 class="sub">Further reading</h3>
+        <ol class="refs">
+          <li>J. von Neumann, <i>Theory of Self-Reproducing Automata</i>, ed. A. W. Burks. University of Illinois Press, 1966.</li>
+          <li>M. Gardner, “Mathematical Games: The fantastic combinations of John Conway's new solitaire game ‘life’”, <i>Scientific American</i> 223(4), 120–123, 1970.</li>
+          <li>S. Wolfram, “Statistical mechanics of cellular automata”, <i>Reviews of Modern Physics</i> 55, 601–644, 1983.</li>
+          <li>C. Bays, “Candidates for the Game of Life in three dimensions”, <i>Complex Systems</i> 1, 373–400, 1987.</li>
+          <li>S. Wolfram, <i>A New Kind of Science</i>. Wolfram Media, 2002.</li>
+          <li>M. Cook, “Universality in elementary cellular automata”, <i>Complex Systems</i> 15, 1–40, 2004.</li>
+        </ol>
+      </section>
+    </main>
+  </div>
+
+  <footer class="foot"><span>© 2026 Hossein Basereh. All rights reserved.</span><span>3-D rendering: three.js (MIT licence).</span><span>A learning tool: rule names follow common usage in the cellular-automata community.</span></footer>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<script>
+(() => {
+'use strict';
+
+/* =====================================================================
+   Helpers
+   ===================================================================== */
+const $ = (id) => document.getElementById(id);
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const range = (a, b) => { const r = []; for (let i = a; i <= b; i++) r.push(i); return r; };
+const fmt = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const clone = (o) => JSON.parse(JSON.stringify(o));
+function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage blocked */ } }
+function mulberry32(a) {
+  return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+let toastT = 0;
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2400); }
+function listWords(a) {
+  if (!a.length) return '';
+  const parts = []; for (let i = 0; i < a.length;) { let j = i; while (j + 1 < a.length && a[j + 1] === a[j] + 1) j++; if (j - i >= 2) parts.push(a[i] + '–' + a[j]); else for (let k = i; k <= j; k++) parts.push(String(a[k])); i = j + 1; }
+  return parts.length === 1 ? parts[0] : parts.slice(0, -1).join(', ') + ' or ' + parts[parts.length - 1];
+}
+
+/* =====================================================================
+   Patterns (2-D), colour maps
+   ===================================================================== */
+const PATTERNS = {
+  glider: ['.O.', '..O', 'OOO'],
+  lwss: ['.O..O', 'O....', 'O...O', 'OOOO.'],
+  rpent: ['.OO', 'OO.', '.O.'],
+  acorn: ['.O.....', '...O...', 'OO..OOO'],
+  diehard: ['......O.', 'OO......', '.O...OOO'],
+  pulsar: ['..OOO...OOO..', '.............', 'O....O.O....O', 'O....O.O....O', 'O....O.O....O', '..OOO...OOO..', '.............',
+    '..OOO...OOO..', 'O....O.O....O', 'O....O.O....O', 'O....O.O....O', '.............', '..OOO...OOO..'],
+  gun: ['........................O...........', '......................O.O...........', '............OO......OO............OO',
+    '...........O...O....OO............OO', 'OO........O.....O...OO..............', 'OO........O...O.OO....O.O...........',
+    '..........O.....O.......O...........', '...........O...O....................', '............OO......................'],
+};
+const CMAPS = {
+  spectrum: { name: 'Spectrum', stops: ['#1032c8', '#0a8cff', '#00d5e6', '#2fd84a', '#e6e619', '#ff9f0a', '#f0281e'] },
+  viridis: { name: 'Viridis', stops: ['#440154', '#472d7b', '#3b528b', '#2c728e', '#21918c', '#28ae80', '#5ec962', '#addc30', '#fde725'] },
+  magma: { name: 'Magma', stops: ['#2a115c', '#51127c', '#822681', '#b73779', '#e75263', '#fc8961', '#fec488', '#fcfdbf'] },
+  ice: { name: 'Ice', stops: ['#1d2a5c', '#2f5aa8', '#3f8fd6', '#77c3ea', '#bfe6f5', '#f2fbff'] },
+};
+function hexRGB(h) { const n = parseInt(h.slice(1), 16); return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]; }
+for (const k in CMAPS) {
+  const st = CMAPS[k].stops.map(hexRGB), L = new Float32Array(256 * 3);
+  for (let i = 0; i < 256; i++) { const t = (i / 255) * (st.length - 1), a = Math.floor(t), b = Math.min(st.length - 1, a + 1), f = t - a; for (let j = 0; j < 3; j++) L[i * 3 + j] = st[a][j] * (1 - f) + st[b][j] * f; }
+  CMAPS[k].lut = L;
+  CMAPS[k].css = `linear-gradient(90deg, ${CMAPS[k].stops.join(', ')})`;
+}
+
+/* =====================================================================
+   Case library
+   ===================================================================== */
+const DEF = {
+  '3d': { B: [4], S: [4], C: 5, nbh: 'M', N: 40, wrap: true, init: 'cube', size: 6, density: 0.5, colorBy: 'state', showDying: true },
+  '2d': { B: [3], S: [2, 3], C: 2, nbh: 'M', N: 64, H: 80, wrap: true, init: 'rpent', size: 24, density: 0.35, colorBy: 'time', tscale: 1, showDying: true },
+  '1d': { rule: 30, N: 161, H: 100, wrap: true, init: 'single', density: 0.5, layout: 'sheet', colorBy: 'time', tscale: 1 },
+};
+const CASES = [
+  { id: 'symmetry', g: '3d', name: 'Symmetry · expanding shells', c: { B: [2], S: [], C: 10, N: 48, init: 'cube', size: 2, density: 1, colorBy: 'state' },
+    note: '<b>B2/S/C10.</b> No live cell survives, and an empty cell is born only with exactly 2 live neighbours. From a solid 2×2×2 cube, waves of births expand outward and each leaves 8 layers of decay behind it. Rule and seed are both symmetric, so the pattern stays perfectly symmetric, even after it wraps round the edges and meets itself.' },
+  { id: 'crystal', g: '3d', name: 'Crystal growth · von Neumann', c: { B: [1, 3], S: range(0, 6), C: 2, nbh: 'VN', N: 41, init: 'single', colorBy: 'age' },
+    note: '<b>One cell, six neighbours.</b> Cells never die (S0–6) and are born with 1 or 3 face-neighbours. Colour by age shows the growth rings: an octahedron, because face-steps measure distance as |x| + |y| + |z|.' },
+  { id: '445', g: '3d', name: '445 · travelling clusters', seed: 2, c: { B: [4], S: [4], C: 5, N: 40, init: 'cube', size: 6, density: 0.35, colorBy: 'state' },
+    note: '<b>B4/S4/C5.</b> Born with exactly 4 live neighbours, survives with exactly 4; cells that fail fade through 3 dying states. Most random seeds die out within a few generations. This one leaves small clusters that move through the volume trailing their own decay. Try seeds 1 to 10 to see how fragile the rule is.' },
+  { id: 'clouds', g: '3d', name: 'Clouds', c: { B: [13, 14, 17, 18, 19], S: range(13, 26), C: 2, N: 48, init: 'full', density: 0.5, colorBy: 'height' },
+    note: '<b>A smoothing rule.</b> Cells in crowded places stay or are born; isolated ones vanish. Within a few generations random noise condenses into solid cloud-like masses: order out of noise.' },
+  { id: 'arch', g: '3d', name: 'Architecture', c: { B: [3], S: [4, 5, 6], C: 2, N: 40, init: 'cube', size: 8, density: 0.5, colorBy: 'distance' },
+    note: '<b>B3/S4–6.</b> Few neighbours are needed to be born but a moderate crowd is needed to survive, so the seed builds walls, columns and beams.' },
+  { id: 'pyro', g: '3d', name: 'Pyroclastic', c: { B: [6, 7, 8], S: [4, 5, 6, 7], C: 10, N: 48, init: 'cube', size: 12, density: 0.5, colorBy: 'state' },
+    note: '<b>Ten states.</b> A live cell that loses support leaves a long decay trail, so the activity looks like glowing lava cooling around an eruption. Switch <i>Show dying cells</i> off to see only the live core.' },
+  { id: 'builder', g: '3d', name: 'Builder', c: { B: [4, 6, 8, 9], S: [2, 6, 9], C: 10, N: 40, init: 'cube', size: 8, density: 0.5, colorBy: 'state' },
+    note: '<b>Scattered birth and survival counts</b> with long decay. Fronts of activity sweep outward and leave scaffolding-like structures behind.' },
+  { id: 'coral', g: '3d', name: 'Coral', c: { B: [6, 7, 9, 12], S: [5, 6, 7, 8], C: 4, N: 40, init: 'cube', size: 10, density: 0.5, colorBy: 'distance' },
+    note: '<b>Slow, branching growth.</b> Survival with 5–8 neighbours keeps branches stable while births at their tips extend them, like a coral colony.' },
+  { id: 'replica', g: '3d', name: 'Single-point replication', c: { B: [1], S: [], C: 2, N: 41, init: 'single', colorBy: 'distance' },
+    note: '<b>B1/S (nothing survives).</b> Every live cell dies each step, and an empty cell is born only if exactly one neighbour is alive. From one cell this produces a self-similar, fractal flicker.' },
+  { id: 'bays', g: '3d', name: '3-D Life · Bays 4555', c: { B: [5], S: [4, 5], C: 2, N: 40, init: 'full', density: 0.12, colorBy: 'neighbours' },
+    note: '<b>Carter Bays\' “Life 4555”</b> (1987): survive with 4–5, born with 5. One of the 3-D rules closest to Conway\'s Life. As in Life, a random soup mostly dies and leaves still lifes and blinking period-4 oscillators behind; rarer seeds even produce gliders.' },
+
+  { id: 'life-r', g: '2d', name: "Conway's Life · R-pentomino", c: { B: [3], S: [2, 3], N: 64, H: 90, init: 'rpent', colorBy: 'time' },
+    note: '<b>Conway\'s Life, B3/S23.</b> Five cells that take 1103 generations to settle. Each layer is one generation, so the history grows upward as a branching tower.' },
+  { id: 'life-gun', g: '2d', name: 'Gosper glider gun', c: { B: [3], S: [2, 3], N: 72, H: 100, wrap: false, init: 'gun', colorBy: 'time' },
+    note: '<b>Bill Gosper\'s gun</b> (1970) fires a glider every 30 generations. In space-time each glider is a slanted tube; its slope is the glider speed, one cell every 4 generations (c/4).' },
+  { id: 'life-glider', g: '2d', name: 'A single glider', c: { B: [3], S: [2, 3], N: 20, H: 120, init: 'glider', colorBy: 'time' },
+    note: '<b>The glider</b> repeats its shape every 4 generations, shifted one cell diagonally. With wrapped edges it travels forever, tracing a tilted tube that re-enters from the opposite side.' },
+  { id: 'life-pulsar', g: '2d', name: 'Pulsar · period 3', c: { B: [3], S: [2, 3], N: 21, H: 48, init: 'pulsar', colorBy: 'neighbours' },
+    note: '<b>An oscillator.</b> The pulsar cycles through 3 shapes. Stacked in time it becomes a column whose pattern repeats every 3 layers.' },
+  { id: 'life-soup', g: '2d', name: 'Random soup', c: { B: [3], S: [2, 3], N: 64, H: 80, init: 'soup', size: 40, density: 0.35, colorBy: 'age' },
+    note: '<b>Random start, Conway\'s rule.</b> Chaos burns out into the familiar debris: blocks and beehives (straight columns), blinkers (braids) and the occasional glider escaping diagonally. Colour by age makes the long-lived still lifes stand out.' },
+  { id: 'brain', g: '2d', name: "Brian's Brain", c: { B: [2], S: [], C: 3, N: 64, H: 70, init: 'soup', size: 24, density: 0.35, colorBy: 'state' },
+    note: '<b>B2/S/C3</b> (Brian Silverman). No cell survives: each fires once, then spends one generation “refractory” and can\'t be reborn. The result is a storm of travelling sparks.' },
+  { id: 'starwars', g: '2d', name: 'Star Wars', c: { B: [2], S: [3, 4, 5], C: 4, N: 64, H: 70, init: 'soup', size: 24, density: 0.4, colorBy: 'state' },
+    note: '<b>B2/S345/C4.</b> A Generations rule with a rich zoo of moving “ships” that leave decay trails, drawn here as streaks through time.' },
+  { id: 'highlife', g: '2d', name: 'HighLife', c: { B: [3, 6], S: [2, 3], N: 64, H: 80, init: 'soup', size: 32, density: 0.35, colorBy: 'time' },
+    note: '<b>B36/S23.</b> Life with one extra birth condition. It looks almost the same, but it supports a small self-replicating pattern that Conway\'s Life lacks.' },
+  { id: 'seeds', g: '2d', name: 'Seeds', c: { B: [2], S: [], C: 2, N: 64, H: 64, init: 'soup', size: 4, density: 0.7, colorBy: 'time' },
+    note: '<b>B2/S.</b> Every live cell dies immediately, yet the pattern explodes: a few cells are enough to fill the world with chaotic growth.' },
+  { id: 'daynight', g: '2d', name: 'Day & Night', c: { B: [3, 6, 7, 8], S: [3, 4, 6, 7, 8], C: 2, N: 64, H: 64, init: 'full', density: 0.5, colorBy: 'time' },
+    note: '<b>B3678/S34678.</b> The rule is symmetric: swapping live and dead cells gives the same rule, so “islands” of day and night behave identically.' },
+  { id: 'maze', g: '2d', name: 'Maze', c: { B: [3], S: [1, 2, 3, 4, 5], C: 2, N: 64, H: 64, init: 'soup', size: 14, density: 0.4, colorBy: 'time' },
+    note: '<b>B3/S12345.</b> Easy survival and Life\'s birth rule. Growth spreads outward and freezes into maze-like corridors that stand as walls through time.' },
+  { id: 'replicator', g: '2d', name: 'Replicator', c: { B: [1, 3, 5, 7], S: [1, 3, 5, 7], C: 2, N: 61, H: 64, init: 'rpent', colorBy: 'time' },
+    note: '<b>B1357/S1357.</b> A parity rule: a cell is alive next if an odd number of its neighbours is alive now, so every pattern makes copies of itself. Watch the R-pentomino reappear, multiplied, at generations that are powers of two. (Set <i>N</i> to 64 and the whole pattern cancels itself out within a few dozen generations.)' },
+
+  { id: 'r30', g: '1d', name: 'Rule 30 · chaos from one cell', c: { rule: 30, N: 161, H: 100, init: 'single', colorBy: 'time' },
+    note: '<b>Rule 30.</b> From a single cell, a simple rule produces a pattern whose centre column looks random. It has been used as a random-number generator: deterministic, yet unpredictable in practice.' },
+  { id: 'r90', g: '1d', name: 'Rule 90 · Sierpiński triangle', c: { rule: 90, N: 129, H: 64, init: 'single', colorBy: 'time' },
+    note: '<b>Rule 90.</b> Each new cell is the XOR of its two neighbours, so the history is Pascal\'s triangle modulo 2: the Sierpiński fractal.' },
+  { id: 'r110', g: '1d', name: 'Rule 110 · universal', c: { rule: 110, N: 181, H: 140, init: 'random', density: 0.5, colorBy: 'pattern' },
+    note: '<b>Rule 110</b> is Class 4: localised “gliders” travel through a periodic background and collide. Matthew Cook proved (2004) that it can compute anything a computer can.' },
+  { id: 'r184', g: '1d', name: 'Rule 184 · traffic flow', c: { rule: 184, N: 161, H: 120, init: 'random', density: 0.45, colorBy: 'pattern' },
+    note: '<b>Rule 184</b> models traffic: a car (live cell) moves right if the space ahead is free. Below 50 % density, jams dissolve into free flow; try 0.6 to see them persist.' },
+  { id: 'r30cyl', g: '1d', name: 'Rule 30 on a cylinder', c: { rule: 30, N: 120, H: 150, init: 'single', layout: 'cylinder', colorBy: 'time' },
+    note: '<b>Wrapped edges, made visible.</b> The row is joined end to end, so wrap it onto a cylinder: after the pattern meets itself round the back, the chaos interferes with itself.' },
+  { id: 'r150', g: '1d', name: 'Rule 150 · XOR of three', c: { rule: 150, N: 129, H: 64, init: 'single', colorBy: 'time' },
+    note: '<b>Rule 150</b> is the XOR of a cell and both neighbours. Like Rule 90 it is additive, so patterns superimpose; its fractal is denser.' },
+  { id: 'r54', g: '1d', name: 'Rule 54 · particles', c: { rule: 54, N: 161, H: 120, init: 'random', density: 0.5, colorBy: 'pattern' },
+    note: '<b>Rule 54</b> is another candidate Class 4 rule: a regular background carrying particles that collide and annihilate.' },
+];
+const CASE_BY_ID = Object.fromEntries(CASES.map((c) => [c.id, c]));
+const EXPERIMENTS = [
+  ['r90', 'Order from one cell', 'Why does one live cell draw a fractal? Hint: each cell is the XOR of its two neighbours. Click the starting row in Fig. 4 to add a second cell.'],
+  ['r30', 'Randomness without randomness', 'Look down the centre column. Can you predict the next cell without running the rule? Then flip one output tile in the Rule panel.'],
+  ['symmetry', 'Change one number', 'Add 3 to the birth list (B2,3) and restart. Does the pattern stay symmetric? Why must it, whatever the rule?'],
+  ['445', 'Fragile rules', 'Try seeds 1 to 10 under Starting state. Most die within 15 generations and a few live on. What does that say about predicting a rule from its definition?'],
+  ['life-gun', 'Measure a speed', 'Rotate to the Side view. Each glider tube rises 4 layers for every cell it moves sideways: speed c/4.'],
+  ['crystal', 'Growth rings', 'Colour by age shows when each cell was born. Switch the neighbourhood to Moore and watch the octahedron become a cube.'],
+  ['life-soup', 'Edges matter', 'Run the soup with wrapped edges, then switch Space → Edges to Fixed and restart. Count the gliders that escape.'],
+  ['r184', 'Traffic jams', 'Set the density to 0.3, then 0.6, and restart. At what density do jams stop dissolving?'],
+  ['brain', 'Refractory waves', 'Switch Show dying cells off. The sparks keep moving because a refractory cell can\'t fire again straight away.'],
+];
+
+/* =====================================================================
+   State
+   ===================================================================== */
+const G = { mode: '3d', seed: 1, cmap: 'spectrum', cell: 0.88, outlines: true, box: true, floor: true, spin: false, speed: 12, theme: 'auto', caseId: 'symmetry', showSlice: false };
+const M = clone(DEF);
+const visited = { '3d': false, '2d': false, '1d': false };
+const caseOf = { '3d': '', '2d': '', '1d': '' }; // the case each mode was last loaded from, for Reset
+const custom = { '3d': null, '2d': null, '1d': null };
+const cfg = () => M[G.mode];
+const maxNb = () => (G.mode === '3d' ? (cfg().nbh === 'VN' ? 6 : 26) : (cfg().nbh === 'VN' ? 4 : 8));
+
+const sim = { gen: 0, alive: 0, occ: 0, births: 0, deaths: 0, ms: 0, hA: [], hB: [], hD: [], h0: 0, hashes: new Map(), period: 0, beh: null };
+let vol = null, stk = null, row = null; // 3-D volume / 2-D stack / 1-D rows
+const lut = { B: new Uint8Array(27), S: new Uint8Array(27) };
+let OFF = new Int8Array(0), WL = new Int32Array(0);
+let playing = false;
+let pickInfo = null; // { code, x, y } for the tooltip
+
+/* =====================================================================
+   Rules: parsing and formatting
+   ===================================================================== */
+function fmtList(a, compact) {
+  if (compact) return a.join('');
+  const out = []; for (let i = 0; i < a.length;) { let j = i; while (j + 1 < a.length && a[j + 1] === a[j] + 1) j++; if (j - i >= 2) out.push(a[i] + '-' + a[j]); else for (let k = i; k <= j; k++) out.push(String(a[k])); i = j + 1; }
+  return out.join(',');
+}
+function ruleString(c = cfg(), mode = G.mode) {
+  if (mode === '1d') return 'Rule ' + c.rule;
+  const d3 = mode === '3d';
+  let s = `B${fmtList(c.B, !d3)}/S${fmtList(c.S, !d3)}`;
+  if (c.C > 2) s += `/C${c.C}`;
+  if (d3) s += c.nbh === 'VN' ? '/VN' : '/M'; else if (c.nbh === 'VN') s += '/VN';
+  return s;
+}
+function parseList(tok, digitMode) {
+  if (tok === '') return [];
+  let nums = [];
+  if (digitMode && !/[,-]/.test(tok)) { if (!/^\d+$/.test(tok)) return null; nums = tok.split('').map(Number); }
+  else for (const part of tok.split(',')) { if (!part) continue; const m = part.match(/^(\d+)(?:-(\d+))?$/); if (!m) return null; let a = +m[1], b = m[2] !== undefined ? +m[2] : a; if (b < a) [a, b] = [b, a]; for (let k = a; k <= b; k++) nums.push(k); }
+  return [...new Set(nums)].sort((a, b) => a - b);
+}
+function parseRule(str, mode) {
+  const d3 = mode === '3d';
+  const s = str.toUpperCase().replace(/\s+/g, '');
+  if (!s) return { err: 'Type a rule, e.g. ' + (d3 ? 'B4/S4/C5/M' : 'B3/S23') + '.' };
+  const r = { B: null, S: null, C: 2, nbh: 'M' };
+  const parts = s.split('/');
+  const digitFor = (tok) => (!d3 ? true : (/^\d+$/.test(tok) && +tok > 26));
+  if (/[BS]/.test(s)) {
+    for (const p of parts) {
+      if (p === '') continue;
+      if (p[0] === 'B') r.B = parseList(p.slice(1), digitFor(p.slice(1)));
+      else if (p[0] === 'S') r.S = parseList(p.slice(1), digitFor(p.slice(1)));
+      else if (p[0] === 'C' || p[0] === 'G') r.C = parseInt(p.slice(1), 10);
+      else if (p === 'M' || p === 'MOORE') r.nbh = 'M';
+      else if (p === 'VN' || p === 'N' || p === 'NN') r.nbh = 'VN';
+      else if (/^\d+$/.test(p)) r.C = +p;
+      else return { err: `I can't read “${p}”.` };
+      if ((p[0] === 'B' && !r.B) || (p[0] === 'S' && !r.S)) return { err: `I can't read the list in “${p}”.` };
+    }
+    r.B = r.B || []; r.S = r.S || [];
+  } else {
+    if (parts.length < 2) return { err: 'Use B…/S…, or the S/B/C/N form such as 4/4/5/M.' };
+    r.S = parseList(parts[0], !d3); r.B = parseList(parts[1], !d3);
+    if (!r.S || !r.B) return { err: 'I can\'t read the survival or birth list.' };
+    if (parts[2]) { if (!/^\d+$/.test(parts[2])) return { err: 'The third part should be the number of states.' }; r.C = +parts[2]; }
+    if (parts[3]) { const n = parts[3]; if (n === 'M') r.nbh = 'M'; else if (n === 'VN' || n === 'N' || n === 'NN') r.nbh = 'VN'; else return { err: 'The neighbourhood should be M or VN.' }; }
+  }
+  if (!(r.C >= 2 && r.C <= 24)) return { err: 'States must be between 2 and 24.' };
+  const mx = d3 ? (r.nbh === 'VN' ? 6 : 26) : (r.nbh === 'VN' ? 4 : 8);
+  const bad = [...r.B, ...r.S].filter((n) => n > mx);
+  if (bad.length) return { err: `With this neighbourhood a cell has at most ${mx} neighbours (found ${bad[0]}).` };
+  return { rule: r };
+}
+
+/* =====================================================================
+   Simulation
+   ===================================================================== */
+function offsets(dim, nbh) {
+  const o = [];
+  if (dim === 3) { for (let dz = -1; dz <= 1; dz++) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dx && !dy && !dz) continue; if (nbh === 'VN' && Math.abs(dx) + Math.abs(dy) + Math.abs(dz) !== 1) continue; o.push(dx, dy, dz); } }
+  else { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dx && !dy) continue; if (nbh === 'VN' && Math.abs(dx) + Math.abs(dy) !== 1) continue; o.push(dx, dy); } }
+  return Int8Array.from(o);
+}
+function wrapLUT(N, wrap) { const w = new Int32Array(N + 2); for (let i = -1; i <= N; i++) w[i + 1] = i >= 0 && i < N ? i : wrap ? (i + N) % N : -1; return w; }
+function rebuildRule() {
+  const c = cfg();
+  if (G.mode === '1d') return;
+  lut.B.fill(0); lut.S.fill(0);
+  c.B.forEach((n) => { lut.B[n] = 1; }); c.S.forEach((n) => { lut.S[n] = 1; });
+  OFF = offsets(G.mode === '3d' ? 3 : 2, c.nbh);
+  WL = wrapLUT(c.N, c.wrap);
+}
+function count3(s, nb, N) {
+  nb.fill(0);
+  const NN = N * N, L = OFF.length, wl = WL;
+  for (let z = 0; z < N; z++) for (let y = 0; y < N; y++) {
+    const base = N * (y + N * z);
+    for (let x = 0; x < N; x++) {
+      if (s[base + x] !== 1) continue;
+      for (let k = 0; k < L; k += 3) {
+        const xx = wl[x + OFF[k] + 1], yy = wl[y + OFF[k + 1] + 1], zz = wl[z + OFF[k + 2] + 1];
+        if ((xx | yy | zz) < 0) continue;
+        nb[xx + N * yy + NN * zz]++;
+      }
+    }
+  }
+}
+function count2(s, nb, N) {
+  nb.fill(0);
+  const L = OFF.length, wl = WL;
+  for (let y = 0; y < N; y++) {
+    const base = y * N;
+    for (let x = 0; x < N; x++) {
+      if (s[base + x] !== 1) continue;
+      for (let k = 0; k < L; k += 2) { const xx = wl[x + OFF[k] + 1], yy = wl[y + OFF[k + 1] + 1]; if ((xx | yy) < 0) continue; nb[xx + yy * N]++; }
+    }
+  }
+}
+// One Generations-rule update: state 0 empty, 1 alive, 2..C-1 dying. Writes dst/dstAge, returns counts.
+function lifeUpdate(s, nb, age, d, da, n, C) {
+  const Bt = lut.B, St = lut.S;
+  let alive = 0, births = 0, deaths = 0, occ = 0;
+  for (let i = 0; i < n; i++) {
+    const st = s[i]; let ns;
+    if (st === 0) ns = Bt[nb[i]] ? 1 : 0;
+    else if (st === 1) ns = St[nb[i]] ? 1 : C > 2 ? 2 : 0;
+    else ns = st + 1 >= C ? 0 : st + 1;
+    d[i] = ns;
+    if (ns) { occ++; const a = age[i]; da[i] = st ? (a < 65535 ? a + 1 : a) : 1; } else da[i] = 0;
+    if (ns === 1) { alive++; if (st !== 1) births++; } else if (st === 1) deaths++;
+  }
+  sim.alive = alive; sim.births = births; sim.deaths = deaths; sim.occ = occ;
+}
+function countState(s) { let a = 0, o = 0; for (let i = 0; i < s.length; i++) { if (s[i]) { o++; if (s[i] === 1) a++; } } sim.alive = a; sim.occ = o; }
+
+// ---- 3-D volume
+function step3() {
+  const c = cfg(), v = vol;
+  lifeUpdate(v.s, v.nb, v.age, v.t, v.ta, v.n, c.C);
+  [v.s, v.t] = [v.t, v.s]; [v.age, v.ta] = [v.ta, v.age];
+  count3(v.s, v.nb, v.N);
+}
+// ---- 2-D stack
+const newLayer = (N) => ({ s: new Uint8Array(N * N), nb: new Uint8Array(N * N), age: new Uint16Array(N * N), gen: 0 });
+const layerAt = (j) => stk.layers[(stk.start + j) % stk.H];
+function pushLayer() {
+  let dst;
+  if (stk.len < stk.H) { const ix = (stk.start + stk.len) % stk.H; if (!stk.layers[ix]) stk.layers[ix] = newLayer(stk.N); dst = stk.layers[ix]; stk.len++; }
+  else { dst = stk.layers[stk.start]; stk.start = (stk.start + 1) % stk.H; }
+  return dst;
+}
+function step2() {
+  const c = cfg(), src = layerAt(stk.len - 1), dst = pushLayer();
+  lifeUpdate(src.s, src.nb, src.age, dst.s, dst.age, stk.N * stk.N, c.C);
+  dst.gen = src.gen + 1;
+  count2(dst.s, dst.nb, stk.N);
+}
+// ---- 1-D rows
+const newRow = (N) => ({ s: new Uint8Array(N), p: new Uint8Array(N), age: new Uint16Array(N), gen: 0 });
+const rowAt = (j) => row.rows[(row.start + j) % row.H];
+function pushRow() {
+  let dst;
+  if (row.len < row.H) { const ix = (row.start + row.len) % row.H; if (!row.rows[ix]) row.rows[ix] = newRow(row.N); dst = row.rows[ix]; row.len++; }
+  else { dst = row.rows[row.start]; row.start = (row.start + 1) % row.H; }
+  return dst;
+}
+function step1() {
+  const c = cfg(), N = row.N, src = rowAt(row.len - 1), dst = pushRow(), s = src.s, rule = c.rule, wrap = c.wrap;
+  let alive = 0, births = 0, deaths = 0;
+  for (let x = 0; x < N; x++) {
+    const l = x > 0 ? s[x - 1] : wrap ? s[N - 1] : 0, r = x < N - 1 ? s[x + 1] : wrap ? s[0] : 0;
+    const p = (l << 2) | (s[x] << 1) | r, v = (rule >> p) & 1;
+    dst.s[x] = v; dst.p[x] = p; dst.age[x] = v ? (s[x] ? Math.min(65535, src.age[x] + 1) : 1) : 0;
+    if (v) { alive++; if (!s[x]) births++; } else if (s[x]) deaths++;
+  }
+  dst.gen = src.gen + 1;
+  sim.alive = alive; sim.occ = alive; sim.births = births; sim.deaths = deaths;
+}
+function currentState() { return G.mode === '3d' ? vol.s : G.mode === '2d' ? layerAt(stk.len - 1).s : rowAt(row.len - 1).s; }
+function hashArr(a) { let h = 0x811c9dc5; for (let i = 0; i < a.length; i++) { h ^= a[i]; h = Math.imul(h, 16777619); } return h >>> 0; }
+
+function record() {
+  sim.hA.push(sim.alive); sim.hB.push(sim.births); sim.hD.push(sim.deaths);
+  if (sim.hA.length > 600) { sim.hA.shift(); sim.hB.shift(); sim.hD.shift(); sim.h0++; }
+  const key = hashArr(currentState()) + ':' + sim.occ;
+  const prev = sim.hashes.get(key);
+  if (prev !== undefined && !sim.period) sim.period = sim.gen - prev;
+  sim.hashes.set(key, sim.gen);
+  if (sim.hashes.size > 500) sim.hashes.delete(sim.hashes.keys().next().value);
+  sim.beh = classify();
+}
+function classify() {
+  if (sim.occ === 0) return { k: 'bad', t: 'Extinct', s: 'every cell is empty' };
+  if (sim.period === 1) return { k: 'ok', t: 'Fixed', s: 'a still life: nothing changes' };
+  if (sim.period > 1) return { k: 'info', t: 'Periodic · ' + sim.period, s: `the whole state repeats every ${sim.period} generations` };
+  const A = sim.hA, n = A.length;
+  if (n < 24) return { k: 'info', t: 'Changing', s: 'too early to tell' };
+  const w = Math.min(30, n >> 1);
+  let a = 0, b = 0; for (let i = 0; i < w; i++) { a += A[n - 1 - i]; b += A[n - 1 - w - i]; }
+  if (a > b * 1.06 + 2) return { k: 'warn', t: 'Growing', s: 'the population is still rising' };
+  if (a < b * 0.94 - 2) return { k: 'warn', t: 'Shrinking', s: 'the population is falling' };
+  return { k: 'info', t: 'Aperiodic', s: 'steady population, no repeat yet' };
+}
+function stepSim() {
+  const t0 = performance.now();
+  if (G.mode === '3d') step3(); else if (G.mode === '2d') step2(); else step1();
+  sim.gen++;
+  sim.ms = sim.ms ? sim.ms * 0.85 + (performance.now() - t0) * 0.15 : performance.now() - t0;
+  record();
+  if (G.mode !== '1d' && sim.occ === 0 && playing) setPlaying(false);
+  if (G.mode === '3d' && sim.period === 1 && playing) setPlaying(false);
+  if (G.mode === '3d' && pickInfo) refreshTip(); else if (pickInfo) clearPick();
+  instDirty = true; uiDirty = true; sliceDirty = true;
+}
+
+// ---- initial states
+function stamp(s, N, pat, ox, oy) { pat.forEach((r, y) => { for (let x = 0; x < r.length; x++) if (r[x] === 'O') { const X = ox + x, Y = oy + y; if (X >= 0 && X < N && Y >= 0 && Y < N) s[X + Y * N] = 1; } }); }
+function init3(c, rng) {
+  const N = c.N, s = vol.s, mid = N >> 1, NN = N * N, k = Math.min(N, c.size | 0), o = (N - k) >> 1, d = c.density;
+  s.fill(0);
+  const id = (x, y, z) => x + N * y + NN * z;
+  if (c.init === 'single') s[id(mid, mid, mid)] = 1;
+  else if (c.init === 'cube') { for (let z = o; z < o + k; z++) for (let y = o; y < o + k; y++) for (let x = o; x < o + k; x++) if (rng() < d) s[id(x, y, z)] = 1; }
+  else if (c.init === 'sphere') { const r = k / 2, cc = (N - 1) / 2; for (let z = 0; z < N; z++) for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const q = (x - cc) ** 2 + (y - cc) ** 2 + (z - cc) ** 2; if (q <= r * r && rng() < d) s[id(x, y, z)] = 1; } }
+  else if (c.init === 'full') { for (let i = 0; i < s.length; i++) if (rng() < d) s[i] = 1; }
+  else if (c.init === 'cross') { const L = Math.max(1, k >> 1); for (let t = -L; t <= L; t++) { const a = clamp(mid + t, 0, N - 1); s[id(a, mid, mid)] = 1; s[id(mid, a, mid)] = 1; s[id(mid, mid, a)] = 1; } }
+  else if (c.init === 'custom' && custom['3d'] && custom['3d'].N === N) s.set(custom['3d'].s);
+}
+function init2(c, rng, s) {
+  const N = c.N, mid = N >> 1, k = Math.min(N, c.size | 0), o = (N - k) >> 1, d = c.density;
+  s.fill(0);
+  const P = PATTERNS[c.init];
+  if (P) {
+    // mirrored so the glider stream runs across the default iso view instead of towards the camera
+    if (c.init === 'gun') stamp(s, N, P.map((r) => [...r].reverse().join('')), N - 2 - P[0].length, 2);
+    else stamp(s, N, P, mid - (P[0].length >> 1), mid - (P.length >> 1));
+  } else if (c.init === 'single') s[mid + mid * N] = 1;
+  else if (c.init === 'soup') { for (let y = o; y < o + k; y++) for (let x = o; x < o + k; x++) if (rng() < d) s[x + y * N] = 1; }
+  else if (c.init === 'full') { for (let i = 0; i < s.length; i++) if (rng() < d) s[i] = 1; }
+  else if (c.init === 'line') { for (let x = o; x < o + k; x++) s[x + mid * N] = 1; }
+  else if (c.init === 'custom' && custom['2d'] && custom['2d'].N === N) s.set(custom['2d'].s);
+}
+function init1(c, rng, s) {
+  const N = c.N; s.fill(0);
+  if (c.init === 'single') s[N >> 1] = 1;
+  else if (c.init === 'pair') { s[Math.round(N / 3)] = 1; s[Math.round((2 * N) / 3)] = 1; }
+  else if (c.init === 'random') { for (let i = 0; i < N; i++) if (rng() < c.density) s[i] = 1; }
+  else if (c.init === 'custom' && custom['1d'] && custom['1d'].N === N) s.set(custom['1d'].s);
+}
+function resetSim() {
+  const c = cfg(), rng = mulberry32(G.seed);
+  Object.assign(sim, { gen: 0, hA: [], hB: [], hD: [], h0: 0, period: 0, ms: 0, births: 0, deaths: 0 });
+  sim.hashes = new Map();
+  clearPick();
+  rebuildRule();
+  if (G.mode === '3d') {
+    const n = c.N ** 3;
+    if (!vol || vol.N !== c.N) vol = { N: c.N, n, s: new Uint8Array(n), t: new Uint8Array(n), nb: new Uint8Array(n), age: new Uint16Array(n), ta: new Uint16Array(n) };
+    init3(c, rng); vol.age.fill(0); for (let i = 0; i < n; i++) if (vol.s[i]) vol.age[i] = 1;
+    count3(vol.s, vol.nb, vol.N); countState(vol.s);
+  } else if (G.mode === '2d') {
+    stk = { N: c.N, H: c.H, layers: new Array(c.H), start: 0, len: 1 };
+    const L = (stk.layers[0] = newLayer(c.N));
+    init2(c, rng, L.s); for (let i = 0; i < L.s.length; i++) L.age[i] = L.s[i] ? 1 : 0;
+    count2(L.s, L.nb, c.N); countState(L.s);
+  } else {
+    row = { N: c.N, H: c.H, rows: new Array(c.H), start: 0, len: 1, first: null };
+    const R = (row.rows[0] = newRow(c.N));
+    init1(c, rng, R.s); R.p.fill(255); for (let i = 0; i < c.N; i++) R.age[i] = R.s[i] ? 1 : 0;
+    row.first = R.s.slice();
+    countState(R.s);
+  }
+  sim.births = sim.alive; sim.deaths = 0;
+  record();
+  if (G.mode === '1d') { for (let k = 1; k < c.H; k++) stepSim(); }
+  instDirty = true; uiDirty = true; sliceDirty = true;
+}
+// After an edit to the live state (drawing, rule change): recount neighbours and forget cycle history.
+function afterEdit() {
+  if (G.mode === '3d') { count3(vol.s, vol.nb, vol.N); countState(vol.s); }
+  else if (G.mode === '2d') { const L = layerAt(stk.len - 1); count2(L.s, L.nb, stk.N); countState(L.s); }
+  sim.hashes = new Map(); sim.period = 0;
+  sim.beh = classify();
+  if (pickInfo && G.mode === '3d') refreshTip();
+  instDirty = true; uiDirty = true; sliceDirty = true;
+}
+
+/* =====================================================================
+   3-D view (three.js)
+   ===================================================================== */
+const V = { ok: false, cap: 0, count: 0, trunc: false, orbit: { az: 0.78, el: 0.52, dist: 100, tx: 0, ty: 0, tz: 0 }, ext: [20, 20, 20] };
+let instDirty = true, camDirty = true, uiDirty = true, sliceDirty = true;
+const MAXI = 450000;
+let TC = {};
+
+function readTheme() {
+  const cs = getComputedStyle(document.documentElement), g = (n) => cs.getPropertyValue(n).trim();
+  TC = { ink: g('--ink'), ink2: g('--ink-2'), ink3: g('--ink-3'), rule: g('--rule'), rule2: g('--rule-2'), field: g('--field'), sheet: g('--sheet'), blue: g('--blue'),
+    hl: g('--hl'), ok: g('--ok'), bad: g('--bad'), v3bg: g('--v3bg'), v3bg2: g('--v3bg2'), plain: g('--cell-plain'), box: g('--box3d'), f1: g('--floor1'), f2: g('--floor2'), grid: g('--grid-line') };
+  TC.plainRGB = hexRGB(TC.plain.length === 7 ? TC.plain : '#cccccc');
+  if (V.ok) { buildHelpers(); instDirty = true; camDirty = true; }
+  sliceDirty = true; uiDirty = true;
+  if (stateReady) { renderFig3(); drawChart(); }
+}
+
+function initThree() {
+  if (!window.THREE) { const m = $('v3msg'); m.hidden = false; m.textContent = 'The 3-D view needs three.js from cdn.jsdelivr.net. Check your connection and reload; the other figures still work.'; $('v3hint').hidden = true; return; }
+  const host = $('v3host');
+  let renderer;
+  try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); }
+  catch (e) { const m = $('v3msg'); m.hidden = false; m.textContent = 'WebGL is not available in this browser, so the 3-D view is off. The other figures still work.'; $('v3hint').hidden = true; return; }
+  V.renderer = renderer;
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.setClearColor(0x000000, 0);
+  host.prepend(renderer.domElement);
+  V.scene = new THREE.Scene();
+  V.camera = new THREE.PerspectiveCamera(35, 1, 0.1, 5000);
+  V.scene.add(V.camera);
+  V.scene.add(new THREE.HemisphereLight(0xffffff, 0x6f7a90, 0.78));
+  const head = new THREE.DirectionalLight(0xffffff, 0.42); head.position.set(0.8, 1.2, 0.6); V.camera.add(head);
+  const top = new THREE.DirectionalLight(0xffffff, 0.22); top.position.set(0.25, 1, 0.35); V.scene.add(top);
+  // A white tile with a soft dark border: multiplied by each instance colour it outlines every cube face.
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const x = cv.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 128, 128); x.strokeStyle = 'rgba(0,0,0,.32)'; x.lineWidth = 10; x.strokeRect(0, 0, 128, 128);
+  x.strokeStyle = 'rgba(255,255,255,.55)'; x.lineWidth = 3; x.strokeRect(9, 9, 110, 110);
+  V.tex = new THREE.CanvasTexture(cv); V.tex.anisotropy = 4;
+  V.geo = new THREE.BoxGeometry(1, 1, 1);
+  V.mat = new THREE.MeshLambertMaterial({ color: 0xffffff, map: G.outlines ? V.tex : null });
+  V.ray = new THREE.Raycaster();
+  V.pickBox = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)), new THREE.LineBasicMaterial({ color: 0xffcf5c, depthTest: false, transparent: true }));
+  V.pickBox.matrixAutoUpdate = false; V.pickBox.visible = false; V.pickBox.renderOrder = 10; V.scene.add(V.pickBox);
+  V.ok = true;
+  new ResizeObserver(() => resize()).observe(host);
+  resize();
+  bindOrbit(renderer.domElement);
+}
+function resize() {
+  if (!V.ok) return;
+  const host = $('v3host'), w = host.clientWidth, h = host.clientHeight;
+  if (!w || !h) return;
+  V.renderer.setSize(w, h, false); V.camera.aspect = w / h; V.camera.updateProjectionMatrix(); camDirty = true;
+}
+function potential() { const c = cfg(); return G.mode === '3d' ? c.N ** 3 : G.mode === '2d' ? c.N * c.N * c.H : c.N * c.H; }
+function ensureMesh() {
+  const need = Math.max(64, Math.min(MAXI, potential()));
+  if (V.mesh && V.cap >= need && V.cap <= need * 3) return;
+  if (V.mesh) { V.scene.remove(V.mesh); V.mesh.dispose(); }
+  const mesh = new THREE.InstancedMesh(V.geo, V.mat, need);
+  mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(need * 3), 3);
+  mesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
+  mesh.frustumCulled = false; mesh.count = 0;
+  V.mesh = mesh; V.cap = need; V.idx = new Int32Array(need);
+  V.scene.add(mesh);
+}
+function extents() {
+  const c = cfg();
+  if (G.mode === '3d') return [c.N / 2, c.N / 2, c.N / 2];
+  if (G.mode === '2d') return [c.N / 2, (c.H * c.tscale) / 2, c.N / 2];
+  if (c.layout === 'cylinder') { const R = c.N / (2 * Math.PI) + 0.5; return [R, (c.H * c.tscale) / 2, R]; }
+  return [c.N / 2, (c.H * c.tscale) / 2, 0.5];
+}
+function lineMat(color, opacity) { return new THREE.LineBasicMaterial({ color: new THREE.Color(color), transparent: true, opacity }); }
+function buildHelpers() {
+  if (!V.ok) return;
+  for (const k of ['boxObj', 'floorObj', 'sliceObj']) if (V[k]) { V.scene.remove(V[k]); V[k].traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); V[k] = null; }
+  const [ex, ey, ez] = (V.ext = extents()), c = cfg();
+  if (G.mode === '1d' && c.layout === 'cylinder') {
+    const g = new THREE.Group(), R = ex - 0.5;
+    for (const y of [-ey, ey]) { const pts = []; for (let i = 0; i <= 96; i++) { const a = (i / 96) * Math.PI * 2; pts.push(new THREE.Vector3(R * Math.sin(a), y, R * Math.cos(a))); } g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat(TC.box, 0.5))); }
+    V.boxObj = g;
+  } else {
+    V.boxObj = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(ex * 2, ey * 2, ez * 2)), lineMat(TC.box, 0.45));
+  }
+  V.scene.add(V.boxObj); V.boxObj.visible = G.box;
+  const span = Math.ceil(Math.max(ex, ez) * 2 + 8), div = Math.min(80, span);
+  const grid = new THREE.GridHelper(span, div, new THREE.Color(TC.f1), new THREE.Color(TC.f2));
+  grid.position.y = -ey - 0.6; grid.material.transparent = true; grid.material.opacity = 0.7;
+  V.floorObj = grid; V.scene.add(grid); grid.visible = G.floor;
+  if (G.mode === '3d') {
+    const h = c.N / 2 + 0.25, pts = [[-h, 0, -h], [h, 0, -h], [h, 0, h], [-h, 0, h], [-h, 0, -h]].map((p) => new THREE.Vector3(...p));
+    V.sliceObj = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: new THREE.Color(TC.hl), depthTest: false, transparent: true, opacity: 0.9 }));
+    V.sliceObj.renderOrder = 9; V.scene.add(V.sliceObj); placeSlicePlane();
+  }
+  camDirty = true;
+}
+function placeSlicePlane() { if (V.sliceObj) { V.sliceObj.position.y = SL.y - cfg().N / 2 + 0.5; V.sliceObj.visible = G.showSlice && G.mode === '3d'; camDirty = true; } }
+
+const ageT = (a) => Math.min(1, Math.log(1 + a) / 4.174); // log(65)
+const hasState = () => (G.mode === '3d' ? !!vol : G.mode === '2d' ? !!stk : !!row);
+function rebuildInstances() {
+  if (!V.ok || !hasState()) return;
+  ensureMesh();
+  const c = cfg(), cb = c.colorBy, lutc = CMAPS[G.cmap].lut, P = TC.plainRGB, cap = V.cap;
+  const m = V.mesh.instanceMatrix.array, col = V.mesh.instanceColor.array, idx = V.idx, cs = G.cell;
+  let n = 0;
+  const put = (x, y, z, sx, sy, sz, t, code) => {
+    const o = n * 16;
+    m[o] = sx; m[o + 1] = 0; m[o + 2] = 0; m[o + 3] = 0; m[o + 4] = 0; m[o + 5] = sy; m[o + 6] = 0; m[o + 7] = 0;
+    m[o + 8] = 0; m[o + 9] = 0; m[o + 10] = sz; m[o + 11] = 0; m[o + 12] = x; m[o + 13] = y; m[o + 14] = z; m[o + 15] = 1;
+    const ci = n * 3;
+    if (t < 0) { col[ci] = P[0]; col[ci + 1] = P[1]; col[ci + 2] = P[2]; }
+    else { const li = (((t > 1 ? 1 : t) * 255) | 0) * 3; col[ci] = lutc[li]; col[ci + 1] = lutc[li + 1]; col[ci + 2] = lutc[li + 2]; }
+    idx[n++] = code;
+  };
+  V.trunc = false;
+  if (G.mode === '3d') {
+    const N = vol.N, NN = N * N, s = vol.s, nb = vol.nb, age = vol.age, h = N / 2, C = c.C, mx = maxNb(), rmax = N * 0.62, showD = c.showDying, cull = cs >= 0.8;
+    const vis = showD ? (j) => s[j] !== 0 : (j) => s[j] === 1;
+    for (let z = 0; z < N; z++) for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const i = x + N * y + NN * z, st = s[i];
+      if (!st || (st > 1 && !showD)) continue;
+      if (cull && x > 0 && y > 0 && z > 0 && x < N - 1 && y < N - 1 && z < N - 1 && vis(i - 1) && vis(i + 1) && vis(i - N) && vis(i + N) && vis(i - NN) && vis(i + NN)) continue;
+      if (n >= cap) { V.trunc = true; break; }
+      let t;
+      switch (cb) {
+        case 'state': t = st === 1 ? 1 : 1 - (st - 1) / (C - 1); break;
+        case 'neighbours': t = nb[i] / mx; break;
+        case 'age': t = ageT(age[i]); break;
+        case 'distance': t = Math.sqrt((x - h + 0.5) ** 2 + (y - h + 0.5) ** 2 + (z - h + 0.5) ** 2) / rmax; break;
+        case 'height': t = y / (N - 1); break;
+        default: t = -1;
+      }
+      put(x - h + 0.5, y - h + 0.5, z - h + 0.5, cs, cs, cs, t, i);
+    }
+  } else if (G.mode === '2d') {
+    const N = stk.N, NN = N * N, H = stk.H, h = N / 2, ts = c.tscale, C = c.C, mx = maxNb(), showD = c.showDying, cull = cs >= 0.8 && ts >= 0.8;
+    outer: for (let j = stk.len - 1; j >= 0; j--) {
+      const L = layerAt(j), s = L.s, y = (j - (H - 1) / 2) * ts, tt = H > 1 ? j / (H - 1) : 1;
+      const up = j < stk.len - 1 ? layerAt(j + 1).s : null, dn = j > 0 ? layerAt(j - 1).s : null;
+      const vis = showD ? (a, k) => a[k] !== 0 : (a, k) => a[k] === 1;
+      for (let gy = 0; gy < N; gy++) for (let gx = 0; gx < N; gx++) {
+        const i = gx + gy * N, st = s[i];
+        if (!st || (st > 1 && !showD)) continue;
+        if (cull && up && dn && gx > 0 && gy > 0 && gx < N - 1 && gy < N - 1 && vis(s, i - 1) && vis(s, i + 1) && vis(s, i - N) && vis(s, i + N) && vis(up, i) && vis(dn, i)) continue;
+        if (n >= cap) { V.trunc = true; break outer; }
+        let t;
+        switch (cb) {
+          case 'time': t = tt; break;
+          case 'state': t = st === 1 ? 1 : 1 - (st - 1) / (C - 1); break;
+          case 'neighbours': t = L.nb[i] / mx; break;
+          case 'age': t = ageT(L.age[i]); break;
+          default: t = -1;
+        }
+        put(gx - h + 0.5, y, gy - h + 0.5, cs, cs * ts, cs, t, j * NN + i);
+      }
+    }
+  } else {
+    const N = row.N, H = row.H, ts = c.tscale, cyl = c.layout === 'cylinder', R = N / (2 * Math.PI);
+    outer1: for (let j = row.len - 1; j >= 0; j--) {
+      const Rw = rowAt(j), y = ((H - 1) / 2 - j) * ts, tt = H > 1 ? j / (H - 1) : 1;
+      for (let x = 0; x < N; x++) {
+        if (!Rw.s[x]) continue;
+        if (n >= cap) { V.trunc = true; break outer1; }
+        let t;
+        switch (cb) {
+          case 'time': t = tt; break;
+          case 'pattern': t = Rw.p[x] === 255 ? 1 : Rw.p[x] / 7; break;
+          case 'age': t = ageT(Rw.age[x]); break;
+          default: t = -1;
+        }
+        if (!cyl) put(x - N / 2 + 0.5, y, 0, cs, cs * ts, cs, t, j * N + x);
+        else {
+          const th = (2 * Math.PI * (x + 0.5)) / N, co = Math.cos(th), si = Math.sin(th);
+          put(R * si, y, R * co, cs, cs * ts, cs, t, j * N + x);
+          const o = (n - 1) * 16; m[o] = co * cs; m[o + 2] = -si * cs; m[o + 8] = si * cs; m[o + 10] = co * cs;
+        }
+      }
+    }
+  }
+  V.count = n; V.mesh.count = n;
+  V.mesh.instanceMatrix.updateRange.offset = 0; V.mesh.instanceMatrix.updateRange.count = n * 16; V.mesh.instanceMatrix.needsUpdate = true;
+  V.mesh.instanceColor.updateRange.offset = 0; V.mesh.instanceColor.updateRange.count = n * 3; V.mesh.instanceColor.needsUpdate = true;
+  placePickBox();
+  camDirty = true;
+}
+
+// ---- camera / orbit
+function applyCam() {
+  const o = V.orbit, c = Math.cos(o.el);
+  V.camera.position.set(o.tx + o.dist * c * Math.sin(o.az), o.ty + o.dist * Math.sin(o.el), o.tz + o.dist * c * Math.cos(o.az));
+  V.camera.near = Math.max(0.05, o.dist * 0.01); V.camera.far = o.dist * 12; V.camera.updateProjectionMatrix();
+  V.camera.lookAt(o.tx, o.ty, o.tz);
+}
+function fitDist() {
+  const [ex, ey, ez] = extents(), r = Math.sqrt(ex * ex + ey * ey + ez * ez);
+  const fv = (V.camera.fov * Math.PI) / 180, fh = 2 * Math.atan(Math.tan(fv / 2) * V.camera.aspect), f = Math.min(fv, fh);
+  return r / Math.sin(f / 2); // the bounding sphere just touches the frustum, so nothing is clipped
+}
+function setView(v) {
+  if (!V.ok) return;
+  const o = V.orbit;
+  if (v === 'iso') { o.az = 0.78; o.el = 0.52; }
+  else if (v === 'front') { o.az = 0; o.el = 0; }
+  else if (v === 'top') { o.az = 0; o.el = 1.5607; }
+  else if (v === 'side') { o.az = Math.PI / 2; o.el = 0; }
+  o.tx = o.ty = o.tz = 0; o.dist = fitDist(); camDirty = true;
+}
+function bindOrbit(el) {
+  const ptrs = new Map(); let mode = null, sx = 0, sy = 0, t0 = 0, moved = 0, pinch = 0, mid = null;
+  el.addEventListener('contextmenu', (e) => e.preventDefault());
+  el.addEventListener('pointerdown', (e) => {
+    el.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    dismissHint();
+    if (ptrs.size === 1) { mode = e.button === 2 || e.shiftKey || e.button === 1 ? 'pan' : 'rot'; sx = e.clientX; sy = e.clientY; t0 = performance.now(); moved = 0; }
+    else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; mode = 'pinch'; moved = 99; }
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (!ptrs.has(e.pointerId)) return;
+    const p = ptrs.get(e.pointerId), dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+    moved += Math.abs(dx) + Math.abs(dy);
+    const o = V.orbit;
+    if (mode === 'rot') { o.az -= dx * 0.008; o.el = clamp(o.el + dy * 0.008, -1.5607, 1.5607); }
+    else if (mode === 'pan') pan(dx, dy);
+    else if (mode === 'pinch' && ptrs.size === 2) {
+      const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y), m2 = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      if (pinch > 0) zoom(pinch / d); pinch = d; pan(m2.x - mid.x, m2.y - mid.y); mid = m2;
+    }
+    camDirty = true;
+  });
+  const up = (e) => {
+    if (!ptrs.has(e.pointerId)) return;
+    ptrs.delete(e.pointerId);
+    if (ptrs.size === 0) { if (mode === 'rot' && moved < 5 && performance.now() - t0 < 600) pick(e); mode = null; }
+    else if (ptrs.size === 1) { mode = 'rot'; moved = 99; }
+  };
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  el.addEventListener('wheel', (e) => { e.preventDefault(); dismissHint(); zoom(Math.exp(e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0012))); }, { passive: false });
+}
+function zoom(f) { const o = V.orbit, base = fitDist(); o.dist = clamp(o.dist * f, base * 0.08, base * 6); camDirty = true; }
+function pan(dx, dy) {
+  const o = V.orbit, h = $('v3host').clientHeight || 400, k = (o.dist * 2 * Math.tan((V.camera.fov * Math.PI) / 360)) / h;
+  const rx = Math.cos(o.az), rz = -Math.sin(o.az), se = Math.sin(o.el), ce = Math.cos(o.el);
+  const ux = -se * Math.sin(o.az), uy = ce, uz = -se * Math.cos(o.az);
+  o.tx += (-dx * rx + dy * ux) * k; o.ty += dy * uy * k; o.tz += (-dx * rz + dy * uz) * k;
+}
+const GZ = new Float32Array(3);
+function drawGizmo() {
+  if (!V.ok) return;
+  const inv = V.camera.matrixWorldInverse.elements, ax = [['x', 0], ['y', 1], ['z', 2]];
+  for (const [n, i] of ax) {
+    // rotate the unit axis into camera space: column i of the view rotation
+    const vx = inv[i * 4], vy = inv[i * 4 + 1], vz = inv[i * 4 + 2];
+    GZ[i] = vz;
+    const L = 22, x2 = 35 + vx * L, y2 = 35 - vy * L;
+    const ln = $('gz' + n); ln.setAttribute('x2', x2.toFixed(1)); ln.setAttribute('y2', y2.toFixed(1)); ln.style.opacity = vz < -0.2 ? 0.55 : 1;
+    const tx = $('gt' + n); tx.setAttribute('x', (35 + vx * (L + 8)).toFixed(1)); tx.setAttribute('y', (35 - vy * (L + 8)).toFixed(1));
+  }
+}
+
+// ---- picking
+function cellMatrix(code) {
+  const c = cfg(), cs = G.cell * 1.12;
+  if (G.mode === '3d') { const N = vol.N, h = N / 2, x = code % N, y = ((code / N) | 0) % N, z = (code / (N * N)) | 0; return new THREE.Matrix4().makeScale(cs, cs, cs).setPosition(x - h + 0.5, y - h + 0.5, z - h + 0.5); }
+  if (G.mode === '2d') { const N = stk.N, NN = N * N, j = (code / NN) | 0, i = code % NN, gx = i % N, gy = (i / N) | 0, h = N / 2; return new THREE.Matrix4().makeScale(cs, cs * c.tscale, cs).setPosition(gx - h + 0.5, (j - (stk.H - 1) / 2) * c.tscale, gy - h + 0.5); }
+  const N = row.N, j = (code / N) | 0, x = code % N, y = ((row.H - 1) / 2 - j) * c.tscale;
+  if (c.layout !== 'cylinder') return new THREE.Matrix4().makeScale(cs, cs * c.tscale, cs).setPosition(x - N / 2 + 0.5, y, 0);
+  const th = (2 * Math.PI * (x + 0.5)) / N, R = N / (2 * Math.PI);
+  return new THREE.Matrix4().makeRotationY(th).multiply(new THREE.Matrix4().makeScale(cs, cs * c.tscale, cs)).setPosition(R * Math.sin(th), y, R * Math.cos(th));
+}
+function placePickBox() { if (!V.ok) return; if (!pickInfo) { V.pickBox.visible = false; return; } V.pickBox.matrix.copy(cellMatrix(pickInfo.code)); V.pickBox.matrixWorldNeedsUpdate = true; V.pickBox.visible = true; }
+function pick(e) {
+  if (!V.ok || !V.count) return clearPick();
+  const r = V.renderer.domElement.getBoundingClientRect();
+  V.ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), V.camera);
+  const hits = V.ray.intersectObject(V.mesh, false);
+  if (!hits.length || hits[0].instanceId === undefined) return clearPick();
+  pickInfo = { code: V.idx[hits[0].instanceId], x: e.clientX - r.left, y: e.clientY - r.top };
+  refreshTip(); placePickBox(); camDirty = true;
+}
+function clearPick() { pickInfo = null; $('tip').hidden = true; if (V.ok) { V.pickBox.visible = false; camDirty = true; } if (stateReady) renderStrip(); }
+function outcome(st, n, C) {
+  if (st === 0) return lut.B[n] ? `<span class="yes">is born</span> next: ${n} ∈ B` : `stays empty: ${n} ∉ B`;
+  if (st === 1) return lut.S[n] ? `<span class="yes">survives</span>: ${n} ∈ S` : `<span class="no">${C > 2 ? 'starts to decay' : 'dies'}</span>: ${n} ∉ S`;
+  return st + 1 >= C ? 'becomes empty next (end of decay)' : 'keeps decaying, whatever its neighbours';
+}
+function stateName(st, C) { return st === 0 ? 'empty' : st === 1 ? 'alive' : `dying (${st - 1} of ${C - 2})`; }
+function refreshTip() {
+  if (!pickInfo) return;
+  const c = cfg(), code = pickInfo.code; let html = '';
+  if (G.mode === '3d') {
+    const N = vol.N, x = code % N, y = ((code / N) | 0) % N, z = (code / (N * N)) | 0, st = vol.s[code], n = vol.nb[code];
+    html = `<b>Cell</b> <span class="n">(${x}, ${y}, ${z})</span> · generation <span class="n">${sim.gen}</span><br>${stateName(st, c.C)} · <span class="n">${n}</span> live neighbour${n === 1 ? '' : 's'}<br>${outcome(st, n, c.C)}`;
+    pickInfo.n = n;
+  } else if (G.mode === '2d') {
+    const N = stk.N, NN = N * N, j = (code / NN) | 0, i = code % NN, L = layerAt(j), st = L.s[i], n = L.nb[i];
+    html = `<b>Generation</b> <span class="n">${L.gen}</span> · cell <span class="n">(${i % N}, ${(i / N) | 0})</span><br>${stateName(st, c.C)} · <span class="n">${n}</span> live neighbour${n === 1 ? '' : 's'}<br>${outcome(st, n, c.C)}`;
+    pickInfo.n = n;
+  } else {
+    const N = row.N, j = (code / N) | 0, x = code % N, R = rowAt(j), p = R.p[x];
+    html = `<b>Generation</b> <span class="n">${R.gen}</span> · cell <span class="n">${x}</span><br>` + (p === 255 ? 'part of the starting row' : `made by the pattern <span class="n">${p.toString(2).padStart(3, '0')}</span> → 1 (bit ${p} of rule ${c.rule})`);
+    pickInfo.n = p;
+  }
+  const tip = $('tip'); tip.innerHTML = html; tip.hidden = false;
+  const host = $('v3host'), w = host.clientWidth, h = host.clientHeight;
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  tip.style.left = clamp(pickInfo.x + 14, 6, w - tw - 6) + 'px'; tip.style.top = clamp(pickInfo.y + 14, 6, h - th - 6) + 'px';
+  if (stateReady) renderStrip();
+}
+
+/* =====================================================================
+   Fig 4: slice & draw
+   ===================================================================== */
+const SL = { y: 20, painting: false, val: 1, last: -1 };
+function sliceSize(cv, cols, rows, fixedW) {
+  const w = Math.max(160, cv.parentNode.clientWidth || 400), dpr = Math.min(2, window.devicePixelRatio || 1);
+  const cssW = fixedW || Math.min(w, G.mode === '1d' ? Math.max(240, (620 * cols) / rows) : 520), cssH = rows === 1 ? Math.max(24, cssW / cols) : (cssW * rows) / cols;
+  cv.style.width = cssW + 'px'; cv.style.height = cssH + 'px';
+  const W = Math.round(cssW * dpr), H = Math.round(cssH * dpr);
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  return { W, H };
+}
+function drawGridCells(cv, N, rows, getState, C, fixedW) {
+  const { W, H } = sliceSize(cv, N, rows, fixedW), x = cv.getContext('2d'), cw = W / N, ch = H / rows;
+  x.fillStyle = TC.field; x.fillRect(0, 0, W, H);
+  for (let r = 0; r < rows; r++) for (let q = 0; q < N; q++) {
+    const st = getState(q, r); if (!st) continue;
+    if (st === 1) { x.globalAlpha = 1; x.fillStyle = TC.ink; }
+    else { x.globalAlpha = 0.75 - (0.55 * (st - 2)) / Math.max(1, C - 2); x.fillStyle = TC.blue; }
+    x.fillRect(Math.floor(q * cw), Math.floor(r * ch), Math.ceil(cw), Math.ceil(ch));
+  }
+  x.globalAlpha = 1;
+  if (cw >= 5) {
+    x.strokeStyle = TC.grid; x.lineWidth = 1; x.beginPath();
+    for (let q = 1; q < N; q++) { const p = Math.round(q * cw) + 0.5; x.moveTo(p, 0); x.lineTo(p, H); }
+    for (let r = 1; r < rows; r++) { const p = Math.round(r * ch) + 0.5; x.moveTo(0, p); x.lineTo(W, p); }
+    x.stroke();
+  }
+}
+function drawSlice() {
+  sliceDirty = false;
+  if (!hasState()) return;
+  const c = cfg();
+  if (G.mode === '3d') {
+    const N = vol.N, y = (SL.y = clamp(SL.y, 0, N - 1));
+    drawGridCells($('slCanvas'), N, N, (x, z) => vol.s[x + N * y + N * N * z], c.C);
+  } else if (G.mode === '2d') {
+    const N = stk.N, L = layerAt(stk.len - 1);
+    drawGridCells($('slCanvas'), N, N, (x, y) => L.s[x + y * N], c.C);
+  } else {
+    // space-time diagram, coloured like the 3-D view
+    const cv = $('stCanvas'), N = row.N, H = row.H, { W, H: Hp } = sliceSize(cv, N, H);
+    const off = document.createElement('canvas'); off.width = N; off.height = H;
+    const ox = off.getContext('2d'), img = ox.createImageData(N, H), d = img.data, lutc = CMAPS[G.cmap].lut;
+    const bg = hexRGB(TC.field.length === 7 ? TC.field : '#ffffff'), ink = hexRGB(TC.ink.length === 7 ? TC.ink : '#000000');
+    for (let j = 0; j < H; j++) for (let x = 0; x < N; x++) {
+      const o = (j * N + x) * 4; let r = bg[0], g = bg[1], b = bg[2];
+      if (j < row.len) {
+        const R = rowAt(j);
+        if (R.s[x]) {
+          let t; switch (c.colorBy) { case 'time': t = H > 1 ? j / (H - 1) : 1; break; case 'pattern': t = R.p[x] === 255 ? 1 : R.p[x] / 7; break; case 'age': t = ageT(R.age[x]); break; default: t = -1; }
+          if (t < 0) [r, g, b] = ink; else { const li = (((t > 1 ? 1 : t) * 255) | 0) * 3; r = lutc[li]; g = lutc[li + 1]; b = lutc[li + 2]; }
+        }
+      }
+      d[o] = r * 255; d[o + 1] = g * 255; d[o + 2] = b * 255; d[o + 3] = 255;
+    }
+    ox.putImageData(img, 0, 0);
+    const x = cv.getContext('2d'); x.imageSmoothingEnabled = false; x.clearRect(0, 0, W, Hp); x.drawImage(off, 0, 0, W, Hp);
+    drawGridCells($('rowCanvas'), N, 1, (q) => row.first[q], 2, parseFloat(cv.style.width) || 400); // same width as the diagram, so columns line up
+  }
+}
+function bindSlice() {
+  const cell = (cv, e, cols, rows) => { const r = cv.getBoundingClientRect(); return [clamp(Math.floor(((e.clientX - r.left) / r.width) * cols), 0, cols - 1), clamp(Math.floor(((e.clientY - r.top) / r.height) * rows), 0, rows - 1)]; };
+  const sl = $('slCanvas');
+  const paint = (e, first) => {
+    const N = G.mode === '3d' ? vol.N : stk.N, [q, r] = cell(sl, e, N, N);
+    let arr, i;
+    if (G.mode === '3d') { arr = vol.s; i = q + N * SL.y + N * N * r; if (first) vol.age[i] = 0; }
+    else { const L = layerAt(stk.len - 1); arr = L.s; i = q + r * N; }
+    if (first) SL.val = arr[i] === 1 ? 0 : 1;
+    if (i === SL.last) return; SL.last = i;
+    arr[i] = SL.val;
+    if (G.mode === '3d') vol.age[i] = SL.val; else layerAt(stk.len - 1).age[i] = SL.val;
+    markCustom(); afterEdit(); drawSlice();
+  };
+  sl.addEventListener('pointerdown', (e) => { if (G.mode === '1d') return; sl.setPointerCapture(e.pointerId); SL.painting = true; SL.last = -1; paint(e, true); });
+  sl.addEventListener('pointermove', (e) => { if (SL.painting) paint(e, false); });
+  const stop = () => { SL.painting = false; }; sl.addEventListener('pointerup', stop); sl.addEventListener('pointercancel', stop);
+  const rc = $('rowCanvas');
+  const paintRow = (e, first) => {
+    const N = row.N, [q] = cell(rc, e, N, 1);
+    if (first) SL.val = row.first[q] ? 0 : 1;
+    if (q === SL.last) return; SL.last = q;
+    const s = row.first.slice(); s[q] = SL.val;
+    custom['1d'] = { N, s }; cfg().init = 'custom'; markCustom(); renderInitGroup();
+    resetSim();
+  };
+  rc.addEventListener('pointerdown', (e) => { rc.setPointerCapture(e.pointerId); SL.painting = true; SL.last = -1; paintRow(e, true); });
+  rc.addEventListener('pointermove', (e) => { if (SL.painting) paintRow(e, false); });
+  rc.addEventListener('pointerup', stop); rc.addEventListener('pointercancel', stop);
+}
+function renderF4() {
+  const m = G.mode, c = cfg();
+  $('slCanvas').hidden = m === '1d'; $('stCanvas').hidden = m !== '1d'; $('rowWrap').hidden = m !== '1d';
+  $('f4').classList.toggle('one', m === '1d');
+  $('f4title').textContent = m === '3d' ? 'Slice & draw: one layer of the volume' : m === '2d' ? 'Draw on the newest generation' : 'The space-time diagram';
+  $('f4cap').textContent = m === '3d' ? 'One horizontal layer of the volume, seen from above. Click or drag to add and remove live cells; the change goes straight into the simulation. Move the layer with the slider.'
+    : m === '2d' ? 'The newest generation, seen from above (the top layer of Fig. 1). Click or drag to add and remove live cells and change what grows next.'
+    : 'Each row is one generation, oldest at the top, as in Wolfram\'s diagrams. Draw on the starting row below it and the whole history is recomputed at once.';
+  const leg = `<div class="f4leg"><span><i style="background:var(--ink)"></i>alive</span>${m !== '1d' && c.C > 2 ? '<span><i style="background:color-mix(in srgb,var(--blue) 60%,var(--field))"></i>dying</span>' : ''}<span><i style="background:var(--field)"></i>empty</span></div>`;
+  let h = '';
+  if (m === '3d') h = fld('slY', '<i>y</i>', 0, c.N - 1, 1, SL.y, 'layer') + `<label class="tgl"><input type="checkbox" id="tSlice" ${G.showSlice ? 'checked' : ''}><span class="tgl-box"></span>Show this layer in Fig. 1</label>`;
+  if (m !== '1d') h += `<div class="row"><button class="btn" id="slClear">Clear all</button><button class="btn" id="slRand">Scatter on ${m === '3d' ? 'layer' : 'grid'}</button></div><div class="row"><button class="btn primary" id="slSeed">Use as seed</button></div><p class="hint">“Use as seed” stores the current ${m === '3d' ? 'volume' : 'generation'} so that Restart comes back to it.</p>`;
+  else h = `<div class="row"><button class="btn" id="rwSingle">Single cell</button><button class="btn" id="rwRand">Random row</button><button class="btn" id="rwClear">Clear row</button></div>`;
+  $('f4side').innerHTML = h + leg;
+  $('f4side').hidden = false;
+  if (m === '3d') { bindFld('slY', (v) => { SL.y = v; if (!G.showSlice) { G.showSlice = true; $('tSlice').checked = true; } placeSlicePlane(); drawSlice(); }); $('tSlice').onchange = (e) => { G.showSlice = e.target.checked; placeSlicePlane(); }; }
+  if (m !== '1d') {
+    $('slClear').onclick = () => { if (m === '3d') { vol.s.fill(0); vol.age.fill(0); } else { const L = layerAt(stk.len - 1); L.s.fill(0); L.age.fill(0); } markCustom(); afterEdit(); drawSlice(); };
+    $('slRand').onclick = () => {
+      const rng = mulberry32((Math.random() * 1e9) | 0), d = c.density || 0.4;
+      if (m === '3d') { const N = vol.N; for (let z = 0; z < N; z++) for (let x = 0; x < N; x++) { const i = x + N * SL.y + N * N * z; if (rng() < d) { vol.s[i] = 1; vol.age[i] = 1; } } }
+      else { const L = layerAt(stk.len - 1); for (let i = 0; i < L.s.length; i++) if (rng() < d) { L.s[i] = 1; L.age[i] = 1; } }
+      markCustom(); afterEdit(); drawSlice();
+    };
+    $('slSeed').onclick = () => {
+      const s = (m === '3d' ? vol.s : layerAt(stk.len - 1).s).map((v) => (v === 1 ? 1 : 0));
+      custom[m] = { N: c.N, s }; c.init = 'custom'; markCustom(); renderInitGroup(); toast('Saved. Restart now returns to your drawing.');
+    };
+  } else {
+    const setRow = (f) => { const s = new Uint8Array(row.N); f(s); custom['1d'] = { N: row.N, s }; c.init = 'custom'; markCustom(); renderInitGroup(); resetSim(); };
+    $('rwSingle').onclick = () => setRow((s) => { s[s.length >> 1] = 1; });
+    $('rwRand').onclick = () => setRow((s) => { const rng = mulberry32((Math.random() * 1e9) | 0); for (let i = 0; i < s.length; i++) s[i] = rng() < 0.5 ? 1 : 0; });
+    $('rwClear').onclick = () => setRow(() => {});
+  }
+  sliceDirty = true;
+}
+
+/* =====================================================================
+   Fig 3: the rule
+   ===================================================================== */
+function neighSVG() {
+  const m = G.mode, vn = cfg().nbh === 'VN';
+  if (m === '1d') {
+    const cs = 30; let s = '';
+    ['left', 'cell', 'right'].forEach((l, i) => { s += `<rect x="${1 + i * cs}" y="1" width="${cs}" height="${cs}" class="nh ${i === 1 ? 'self' : 'in'}"/><text x="${1 + i * cs + cs / 2}" y="${cs + 16}" class="mt tick" text-anchor="middle">${l}</text>`; });
+    return `<svg viewBox="0 0 ${3 * cs + 2} ${cs + 22}" width="${3 * cs + 2}" height="${cs + 22}">${s}</svg>`;
+  }
+  const d3 = m === '3d', cs = 20, gap = 22, layers = d3 ? [-1, 0, 1] : [0];
+  const w = layers.length * 3 * cs + (layers.length - 1) * gap + 2, h = 3 * cs + (d3 ? 22 : 4);
+  let s = '';
+  layers.forEach((dz, li) => {
+    const ox = 1 + li * (3 * cs + gap);
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const self = !dx && !dy && !dz, inN = !self && (!vn || Math.abs(dx) + Math.abs(dy) + Math.abs(dz) === 1);
+      s += `<rect x="${ox + (dx + 1) * cs}" y="${1 + (dy + 1) * cs}" width="${cs}" height="${cs}" class="nh ${self ? 'self' : inN ? 'in' : ''}"/>`;
+    }
+    if (d3) s += `<text x="${ox + 1.5 * cs}" y="${3 * cs + 16}" class="mt tick" text-anchor="middle">${['layer below', 'same layer', 'layer above'][li]}</text>`;
+  });
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${s}</svg>`;
+}
+function lifecycleSVG() {
+  const C = cfg().C, nodes = [['Empty', ''], ['Alive', 'alive']];
+  if (C > 2) { const k = C - 2; if (k <= 3) for (let i = 1; i <= k; i++) nodes.push([`Dying ${i}`, '']); else nodes.push(['Dying 1', ''], ['…', 'dots'], [`Dying ${k}`, '']); }
+  const nw = 68, nh = 30, gap = 44, y = 46, W = nodes.length * nw + (nodes.length - 1) * gap + 4, H = 118;
+  const X = (i) => 2 + i * (nw + gap);
+  let s = `<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ahf"/></marker></defs>`;
+  nodes.forEach(([t, k], i) => {
+    if (k === 'dots') { s += `<text x="${X(i) + nw / 2}" y="${y + nh / 2}" class="lc-t">…</text>`; return; }
+    s += `<rect x="${X(i)}" y="${y}" width="${nw}" height="${nh}" rx="15" class="lc-node ${k}"/><text x="${X(i) + nw / 2}" y="${y + nh / 2 + 1}" class="lc-t ${k ? 'inv' : ''}">${t}</text>`;
+  });
+  const arrow = (i, lab) => { s += `<path d="M${X(i) + nw + 3},${y + nh / 2} L${X(i + 1) - 4},${y + nh / 2}" class="lc-e" marker-end="url(#ah)"/><text x="${X(i) + nw + gap / 2}" y="${y + nh / 2 - 7}" class="lc-el">${lab}</text>`; };
+  arrow(0, 'n ∈ B');
+  if (C > 2) for (let i = 1; i < nodes.length - 1; i++) arrow(i, i === 1 ? 'n ∉ S' : 'next');
+  // self-loop on Alive
+  const ax = X(1) + nw / 2; s += `<path d="M${ax - 12},${y - 2} C${ax - 26},${y - 34} ${ax + 26},${y - 34} ${ax + 12},${y - 3}" class="lc-e" marker-end="url(#ah)"/><text x="${ax}" y="${y - 30}" class="lc-el">n ∈ S</text>`;
+  // return to Empty
+  const last = nodes.length - 1, x1 = X(last) + nw / 2, x0 = X(0) + nw / 2, yb = y + nh + 2;
+  s += `<path d="M${x1},${yb} C${x1},${yb + 40} ${x0},${yb + 40} ${x0},${yb + 3}" class="lc-e" marker-end="url(#ah)"/><text x="${(x0 + x1) / 2}" y="${yb + 36}" class="lc-el">${C > 2 ? 'after the last dying state' : 'n ∉ S'}</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${s}</svg>`;
+}
+function renderStrip() {
+  const el = $('strip'); if (!el || G.mode === '1d') return;
+  const c = cfg(), mx = maxNb(), cw = mx > 10 ? 24 : 34, lw = 96, W = lw + (mx + 1) * cw + 2, H = 84;
+  let s = '';
+  for (let n = 0; n <= mx; n++) s += `<text x="${lw + n * cw + cw / 2}" y="10">${n}</text>`;
+  [['B', 'born', 22], ['S', 'survives', 52]].forEach(([k, l, y]) => {
+    s += `<text class="rl" x="0" y="${y + 13}">${k} · ${l}</text>`;
+    for (let n = 0; n <= mx; n++) { const on = c[k].includes(n); s += `<rect class="c ${on ? k.toLowerCase() : ''}" data-k="${k}" data-n="${n}" x="${lw + n * cw + 1}" y="${y}" width="${cw - 2}" height="26" rx="2"/>`; if (on) s += `<text class="on" x="${lw + n * cw + cw / 2}" y="${y + 13}">${n}</text>`; }
+  });
+  if (pickInfo && pickInfo.n !== undefined && G.mode !== '1d') s += `<rect class="hl" x="${lw + pickInfo.n * cw - 1}" y="18" width="${cw + 2}" height="64" rx="3"/>`;
+  el.innerHTML = `<svg class="strip" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="max-width:100%">${s}</svg>`;
+}
+function ruleTableSVG() {
+  const r = cfg().rule, tw = 52, gap = 8, W = 8 * tw + 7 * gap + 2, H = 118, q = 12;
+  let s = '';
+  for (let k = 0; k < 8; k++) {
+    const p = 7 - k, bit = (r >> p) & 1, x0 = 1 + k * (tw + gap), l = (p >> 2) & 1, c = (p >> 1) & 1, rr = p & 1, cx = x0 + (tw - 3 * q) / 2;
+    s += `<g class="rt-g" data-p="${p}"><rect class="frame" x="${x0}" y="1" width="${tw}" height="76" rx="2"/>`;
+    [l, c, rr].forEach((v, i) => { s += `<rect x="${cx + i * q}" y="10" width="${q}" height="${q}" class="${v ? 'on' : 'off'}"/>`; });
+    s += `<rect x="${cx + q}" y="${10 + q + 4}" width="${q}" height="${q}" class="${bit ? 'out' : 'off'}"/>`;
+    s += `<text x="${x0 + tw / 2}" y="66" class="bit">${bit}</text></g>`;
+    s += `<text x="${x0 + tw / 2}" y="94">${p.toString(2).padStart(3, '0')}</text><text x="${x0 + tw / 2}" y="112">2<tspan dy="-5" font-size="9">${p}</tspan><tspan dy="5"> = ${1 << p}</tspan></text>`;
+  }
+  return `<svg class="rt" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="max-width:100%">${s}</svg>`;
+}
+function renderFig3() {
+  const m = G.mode, c = cfg(), el = $('f3');
+  if (m === '1d') {
+    const r = c.rule, on = range(0, 7).filter((p) => (r >> p) & 1).reverse();
+    el.innerHTML = `<div class="f3"><div><h3>Neighbourhood</h3>${neighSVG()}</div>
+      <div><h3>The rule table · click a tile to flip it</h3><div id="rtab">${ruleTableSVG()}</div></div>
+      <p class="f3-text f3-wide">Each cell looks at itself and its two neighbours, so there are 2³ = 8 possible patterns. The rule says which of them produce a live cell. Read the eight outputs as a binary number, from 111 on the left to 000 on the right: <b>${r.toString(2).padStart(8, '0')}₂ = ${on.length ? on.map((p) => 1 << p).join(' + ') : '0'} = ${r}</b>. That is why there are exactly 256 elementary rules.${c.colorBy === 'pattern' ? ' In Fig. 1, each live cell is coloured by the pattern that created it.' : ''}</p></div>`;
+    el.querySelectorAll('.rt-g').forEach((g) => g.addEventListener('click', () => setRule1(c.rule ^ (1 << +g.dataset.p))));
+    return;
+  }
+  const d3 = m === '3d', vn = c.nbh === 'VN', mx = maxNb();
+  const who = vn ? (d3 ? 'its 6 face neighbours' : 'its 4 orthogonal neighbours') : d3 ? 'the 26 cells around it' : 'the 8 cells around it';
+  const born = c.B.length ? `born when exactly <b>${listWords(c.B)}</b> of them ${c.B.length === 1 && c.B[0] === 1 ? 'is' : 'are'} alive` : '<b>never</b> born';
+  const surv = c.S.length ? (c.S.length === mx + 1 ? '<b>always survives</b>' : `survives with <b>${listWords(c.S)}</b>`) : '<b>never</b> survives a generation';
+  const dec = c.C > 2 ? ` Otherwise it begins to decay, fading through <b>${c.C - 2}</b> dying state${c.C > 3 ? 's' : ''} before it is empty again. Dying cells don't count as live neighbours and can't be reborn until they are empty.` : c.S.length === mx + 1 ? '' : ' Otherwise it dies.';
+  el.innerHTML = `<div class="f3"><div><h3>Neighbourhood · ${vn ? 'von Neumann' : 'Moore'} · ${mx} cells</h3>${neighSVG()}</div>
+    <div><h3>Life cycle of one cell</h3>${lifecycleSVG()}</div>
+    <div class="f3-wide"><h3>Transition table · n = live neighbours · click to toggle</h3><div id="strip"></div></div>
+    <p class="f3-text f3-wide">Each cell looks at ${who}. An empty cell is ${born}. A live cell ${surv}.${dec} Click a cell in Fig. 1 and its neighbour count is outlined in the table.</p></div>`;
+  renderStrip();
+  $('strip').addEventListener('click', (e) => { const t = e.target.closest('rect.c'); if (t) toggleNum(t.dataset.k, +t.dataset.n); });
+}
+
+/* =====================================================================
+   Fig 2: chart and tiles
+   ===================================================================== */
+let chartGeo = null;
+function niceMax(v) { if (v <= 4) return 4; const p = 10 ** Math.floor(Math.log10(v)), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
+function drawChart() {
+  const svg = $('popSvg'), W = Math.max(280, $('chartWrap').clientWidth), H = 250, A = sim.hA, n = A.length;
+  const pl = 54, pr = 14, t1 = 26, b1 = 128, t2 = 168, b2 = 226, iw = W - pl - pr;
+  const maxA = niceMax(Math.max(1, ...A)), maxBD = niceMax(Math.max(1, ...sim.hB, ...sim.hD));
+  const X = (i) => pl + (n <= 1 ? 0 : (i / (n - 1)) * iw), Y1 = (v) => b1 - (v / maxA) * (b1 - t1), Y2 = (v) => b2 - (v / maxBD) * (b2 - t2);
+  let s = '';
+  for (let k = 0; k <= 2; k++) { const v = (maxA * k) / 2, y = Y1(v); s += `<line class="gl" x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}"/><text class="mt tick" x="${pl - 6}" y="${y + 4}" text-anchor="end">${fmt(v)}</text>`; }
+  for (let k = 0; k <= 1; k++) { const v = maxBD * k, y = Y2(v); s += `<line class="gl" x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}"/><text class="mt tick" x="${pl - 6}" y="${y + 4}" text-anchor="end">${fmt(v)}</text>`; }
+  s += `<text class="mt lab" x="${pl}" y="14">Live cells</text><text class="mt lab" x="${pl}" y="${t2 - 12}">Births and deaths per generation</text>`;
+  s += `<g transform="translate(${W - pr - 150},${t2 - 16})"><line x1="0" x2="14" y1="-4" y2="-4" class="c-b"/><text class="mt tick" x="18" y="0">births</text><line x1="70" x2="84" y1="-4" y2="-4" class="c-d"/><text class="mt tick" x="88" y="0">deaths</text></g>`;
+  if (n > 1) {
+    let pa = '', pb = '', pd = '';
+    const stepI = Math.max(1, Math.floor(n / (iw * 1.5)));
+    for (let i = 0; i < n; i += stepI) { const x = X(i).toFixed(1); pa += `${i ? 'L' : 'M'}${x},${Y1(A[i]).toFixed(1)}`; pb += `${i ? 'L' : 'M'}${x},${Y2(sim.hB[i]).toFixed(1)}`; pd += `${i ? 'L' : 'M'}${x},${Y2(sim.hD[i]).toFixed(1)}`; }
+    const xl = X(n - 1).toFixed(1); pa += `L${xl},${Y1(A[n - 1]).toFixed(1)}`; pb += `L${xl},${Y2(sim.hB[n - 1]).toFixed(1)}`; pd += `L${xl},${Y2(sim.hD[n - 1]).toFixed(1)}`;
+    s += `<path class="c-area" d="${pa}L${xl},${b1}L${pl},${b1}Z"/><path class="c-alive" d="${pa}"/><path class="c-d" d="${pd}"/><path class="c-b" d="${pb}"/>`;
+  }
+  s += `<line class="axis" x1="${pl}" x2="${W - pr}" y1="${b1}" y2="${b1}"/><line class="axis" x1="${pl}" x2="${W - pr}" y1="${b2}" y2="${b2}"/>`;
+  const g0 = sim.h0, g1 = sim.h0 + Math.max(0, n - 1);
+  s += `<text class="mt tick" x="${pl}" y="${b2 + 16}">gen ${g0}</text><text class="mt tick" x="${W - pr}" y="${b2 + 16}" text-anchor="end">gen ${g1}</text>`;
+  s += `<line id="hovL" class="hover-l" x1="0" x2="0" y1="${t1}" y2="${b2}" visibility="hidden"/>`;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('height', H); svg.innerHTML = s;
+  chartGeo = { X, pl, iw, n, W };
+}
+function bindChart() {
+  const svg = $('popSvg');
+  svg.addEventListener('pointermove', (e) => {
+    if (!chartGeo || chartGeo.n < 2) return;
+    const r = svg.getBoundingClientRect(), px = ((e.clientX - r.left) / r.width) * chartGeo.W, i = clamp(Math.round(((px - chartGeo.pl) / chartGeo.iw) * (chartGeo.n - 1)), 0, chartGeo.n - 1);
+    const l = $('hovL'); if (l) { l.setAttribute('x1', chartGeo.X(i)); l.setAttribute('x2', chartGeo.X(i)); l.setAttribute('visibility', 'visible'); }
+    $('popRead').innerHTML = `gen <b>${sim.h0 + i}</b> · live <b>${fmt(sim.hA[i])}</b> · births <b>${fmt(sim.hB[i])}</b> · deaths <b>${fmt(sim.hD[i])}</b>`;
+  });
+  svg.addEventListener('pointerleave', () => { const l = $('hovL'); if (l) l.setAttribute('visibility', 'hidden'); $('popRead').textContent = ''; });
+}
+function totalCells() { const c = cfg(); return G.mode === '3d' ? c.N ** 3 : G.mode === '2d' ? c.N * c.N : c.N; }
+function updateStatsUI() {
+  const c = cfg(), tot = totalCells(), dens = (100 * sim.alive) / tot, b = sim.beh || classify();
+  $('tGen').textContent = fmt(sim.gen);
+  $('tGenS').textContent = sim.ms ? `${sim.ms < 1 ? sim.ms.toFixed(2) : sim.ms.toFixed(1)} ms per step` : 'press Play or Step';
+  $('tAlive').textContent = fmt(sim.alive);
+  $('tAliveS').textContent = `${dens < 1 ? dens.toFixed(2) : dens.toFixed(1)} % of ${fmt(tot)} cells${G.mode === '3d' ? '' : G.mode === '2d' ? ' in the newest layer' : ' in the newest row'}${sim.occ > sim.alive ? ` · ${fmt(sim.occ - sim.alive)} dying` : ''}`;
+  $('tBD').innerHTML = `<span style="color:var(--ok)">+${fmt(sim.births)}</span><span style="color:var(--ink-3)">·</span><span style="color:var(--bad)">−${fmt(sim.deaths)}</span>`;
+  $('tBeh').innerHTML = `<span class="chip ${b.k}">${b.t}</span>`; $('tBehS').textContent = b.s;
+  $('tbBeh').innerHTML = `<span class="chip ${b.k}">${b.t}</span><span>gen <span class="num">${fmt(sim.gen)}</span> · ${fmt(sim.alive)} live</span>`;
+  const hud = [`<span class="run"><span class="dot ${playing ? 'on' : ''}"></span>${playing ? 'running' : 'paused'}</span>`, `<span>gen<b>${fmt(sim.gen)}</b></span>`, `<span>live<b>${fmt(sim.alive)}</b></span>`, `<span>ρ<b>${dens < 1 ? dens.toFixed(2) : dens.toFixed(1)} %</b></span>`];
+  if (V.ok) hud.push(`<span>cubes<b>${fmt(V.count)}</b></span>`);
+  if (V.trunc) hud.push(`<span style="color:var(--warn)">showing the newest ${fmt(V.cap)}</span>`);
+  $('hud').innerHTML = hud.join('');
+  drawChart();
+  if (sliceDirty) drawSlice();
+}
+
+/* =====================================================================
+   Setup sheet
+   ===================================================================== */
+function fld(id, label, min, max, step, val, unit) {
+  return `<div class="fld"><label class="fld-l" for="${id}">${label}</label><input class="fld-i" id="${id}" type="number" min="${min}" max="${max}" step="${step}" value="${val}"><span class="fld-u">${unit}</span><input class="fld-s" type="range" id="${id}R" min="${min}" max="${max}" step="${step}" value="${val}" aria-label="${unit}"></div>`;
+}
+function bindFld(id, fn, liveRange = true) {
+  const a = $(id), r = $(id + 'R');
+  const set = (v, src) => { v = clamp(+v, +a.min, +a.max); if (isNaN(v)) return; if (src !== a) a.value = v; if (src !== r) r.value = v; fn(v); };
+  a.addEventListener('change', () => set(a.value, a));
+  r.addEventListener(liveRange ? 'input' : 'change', () => set(r.value, r));
+  if (!liveRange) r.addEventListener('input', () => { a.value = r.value; });
+}
+function segBind(id, cur, fn) {
+  const el = $(id);
+  el.querySelectorAll('.seg-b').forEach((b) => { b.classList.toggle('on', b.dataset.v === String(cur)); b.onclick = () => { el.querySelectorAll('.seg-b').forEach((x) => x.classList.toggle('on', x === b)); fn(b.dataset.v); }; });
+}
+function tgl(id, label, on) { return `<label class="tgl"><input type="checkbox" id="${id}" ${on ? 'checked' : ''}><span class="tgl-box"></span>${label}</label>`; }
+
+function renderRuleGroup() {
+  const c = cfg(), m = G.mode; let h = '';
+  if (m === '1d') {
+    h = fld('r1n', '<i>r</i>', 0, 255, 1, c.rule, 'rule number') + `<div class="r1" id="r1"></div>
+      <div class="row"><button class="btn grow" id="r1prev">◂ Prev</button><button class="btn grow" id="r1next">Next ▸</button><button class="btn grow" id="r1rand">Random</button></div>
+      <p class="hint">Each tile is one neighbourhood pattern and the cell it produces. Click a tile to flip its output; the rule number changes with it.</p>`;
+  } else {
+    const d3 = m === '3d';
+    h = `<div class="lbl">Rule string</div><div class="row"><input class="fld-i mono grow" id="ruleIn" spellcheck="false" autocomplete="off" aria-label="Rule string"><button class="btn" id="ruleGo">Apply</button></div>
+      <p class="hint" id="ruleHint">${d3 ? 'B…/S…/C…/M, e.g. B4/S4/C5/M, or the S/B/C/N form 4/4/5/M. Separate 3-D counts with commas: B5-7,12.' : 'B…/S…, e.g. B3/S23 for Conway\'s Life. Add /C3 for decay states.'}</p>
+      <div class="lbl">Neighbourhood</div><div class="seg wide" id="nbhSeg"><button class="seg-b" data-v="M">Moore · ${d3 ? 26 : 8}</button><button class="seg-b" data-v="VN">von Neumann · ${d3 ? 6 : 4}</button></div>
+      <div class="lbl"><span class="k b">B</span> Born with <i class="m">n</i> live neighbours</div><div class="nums" id="bNums"></div>
+      <div class="lbl"><span class="k s">S</span> Survives with <i class="m">n</i> live neighbours</div><div class="nums" id="sNums"></div>
+      ${fld('nC', '<i>C</i>', 2, 24, 1, c.C, 'states')}
+      <p class="hint">With more than 2 states, a cell that fails to survive fades through <i class="m">C</i> − 2 dying states first.</p>`;
+  }
+  $('gRule').innerHTML = h;
+  if (m === '1d') {
+    bindFld('r1n', (v) => setRule1(v));
+    $('r1prev').onclick = () => setRule1((c.rule + 255) % 256); $('r1next').onclick = () => setRule1((c.rule + 1) % 256);
+    $('r1rand').onclick = () => setRule1((Math.random() * 256) | 0);
+    $('r1').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setRule1(c.rule ^ (1 << +b.dataset.p)); });
+  } else {
+    $('ruleGo').onclick = applyRuleText;
+    $('ruleIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') applyRuleText(); });
+    segBind('nbhSeg', c.nbh, (v) => { c.nbh = v; const mx = maxNb(); c.B = c.B.filter((n) => n <= mx); c.S = c.S.filter((n) => n <= mx); ruleChanged(); });
+    const nums = (e) => { const b = e.target.closest('.nb'); if (b) toggleNum(b.dataset.k, +b.dataset.n); };
+    $('bNums').addEventListener('click', nums); $('sNums').addEventListener('click', nums);
+    bindFld('nC', (v) => { c.C = v; ruleChanged(); }, false);
+  }
+  refreshRuleUI();
+}
+function refreshRuleUI() {
+  const c = cfg();
+  $('tbRule').textContent = ruleString();
+  if (G.mode === '1d') {
+    $('r1n').value = c.rule; $('r1nR').value = c.rule;
+    let h = ''; for (let k = 0; k < 8; k++) { const p = 7 - k, bit = (c.rule >> p) & 1, l = (p >> 2) & 1, cc = (p >> 1) & 1, r = p & 1;
+      h += `<button data-p="${p}" title="${p.toString(2).padStart(3, '0')} → ${bit}"><svg viewBox="0 0 29 21"><rect x=".5" y=".5" width="9" height="9" class="${l ? 'on' : 'off'}"/><rect x="10" y=".5" width="9" height="9" class="${cc ? 'on' : 'off'}"/><rect x="19.5" y=".5" width="9" height="9" class="${r ? 'on' : 'off'}"/><rect x="10" y="11.5" width="9" height="9" class="${bit ? 'out' : 'off'}"/></svg>${bit}</button>`; }
+    $('r1').innerHTML = h;
+  } else {
+    const mx = maxNb();
+    for (const [id, k] of [['bNums', 'B'], ['sNums', 'S']]) $(id).innerHTML = range(0, mx).map((n) => `<button class="nb ${k.toLowerCase()} ${c[k].includes(n) ? 'on' : ''}" data-k="${k}" data-n="${n}" aria-pressed="${c[k].includes(n)}">${n}</button>`).join('');
+    $('ruleIn').value = ruleString(); $('ruleIn').classList.remove('bad');
+    $('nC').value = c.C; $('nCR').value = c.C;
+    segBind('nbhSeg', c.nbh, (v) => { c.nbh = v; const m2 = maxNb(); c.B = c.B.filter((n) => n <= m2); c.S = c.S.filter((n) => n <= m2); ruleChanged(); });
+  }
+  renderChips();
+}
+function applyRuleText() {
+  const inp = $('ruleIn'), res = parseRule(inp.value, G.mode), hint = $('ruleHint');
+  if (res.err) { inp.classList.add('bad'); hint.textContent = res.err; hint.classList.add('bad'); return; }
+  hint.classList.remove('bad');
+  hint.textContent = G.mode === '3d' ? 'B…/S…/C…/M, e.g. B4/S4/C5/M, or the S/B/C/N form 4/4/5/M. Separate 3-D counts with commas: B5-7,12.' : 'B…/S…, e.g. B3/S23 for Conway\'s Life. Add /C3 for decay states.';
+  Object.assign(cfg(), res.rule); ruleChanged();
+}
+function toggleNum(k, n) { const c = cfg(), a = c[k], i = a.indexOf(n); if (i >= 0) a.splice(i, 1); else { a.push(n); a.sort((x, y) => x - y); } ruleChanged(); }
+function ruleChanged() {
+  const c = cfg();
+  rebuildRule();
+  if (G.mode === '3d' || G.mode === '2d') {
+    const s = currentState(); // fewer states: cells beyond the new last state become empty
+    for (let i = 0; i < s.length; i++) if (s[i] >= c.C) s[i] = 0;
+    afterEdit();
+  }
+  markCustom(); refreshRuleUI(); renderFig3(); renderF4(); renderLookGroup();
+}
+function setRule1(v) { cfg().rule = clamp(v | 0, 0, 255); markCustom(); refreshRuleUI(); renderFig3(); resetSim(); }
+
+function renderSpaceGroup() {
+  const c = cfg(), m = G.mode; let h = '';
+  if (m === '3d') h = fld('nN', '<i>N</i>', 12, 64, 1, c.N, 'cells per side');
+  else if (m === '2d') h = fld('nN', '<i>N</i>', 12, 128, 1, c.N, 'cells per side') + fld('nH', '<i>T</i>', 8, 160, 1, c.H, 'generations shown');
+  else h = fld('nN', '<i>W</i>', 21, 301, 1, c.N, 'cells in the row') + fld('nH', '<i>T</i>', 10, 240, 1, c.H, 'generations shown');
+  h += `<div class="lbl">Edges</div><div class="seg wide" id="wrapSeg"><button class="seg-b" data-v="1">Wrap around</button><button class="seg-b" data-v="0">Fixed, empty border</button></div>`;
+  if (m === '1d') h += `<div class="lbl">Layout</div><div class="seg wide" id="laySeg"><button class="seg-b" data-v="sheet">Flat sheet</button><button class="seg-b" data-v="cylinder">Cylinder</button></div>`;
+  h += `<p class="hint" id="spaceHint"></p>`;
+  $('gSpace').innerHTML = h;
+  const hint = () => { const t = totalCells(); $('spaceHint').textContent = m === '3d' ? `${c.N}³ = ${fmt(t)} cells. Wrapped edges join opposite faces, so the volume is a 3-D torus.` : m === '2d' ? `${c.N} × ${c.N} = ${fmt(t)} cells per generation; the last ${c.H} generations are stacked.` : `${c.N} cells; the last ${c.H} generations are shown. Wrapped edges join the two ends of the row.`; };
+  hint();
+  bindFld('nN', (v) => { c.N = v; if (m === '3d') SL.y = v >> 1; hint(); markCustom(); spaceChanged(); }, false);
+  if (m !== '3d') bindFld('nH', (v) => { c.H = v; hint(); markCustom(); spaceChanged(); }, false);
+  segBind('wrapSeg', c.wrap ? '1' : '0', (v) => { c.wrap = v === '1'; markCustom(); if (m === '1d') resetSim(); else { rebuildRule(); afterEdit(); } renderChips(); });
+  if (m === '1d') segBind('laySeg', c.layout, (v) => { c.layout = v; buildHelpers(); instDirty = true; setView('iso'); renderChips(); });
+}
+function spaceChanged() { resetSim(); buildHelpers(); setView('fit'); renderF4(); renderChips(); }
+
+const INITS = {
+  '3d': [['cube', 'Random cube at the centre'], ['sphere', 'Random ball at the centre'], ['full', 'Random everywhere'], ['single', 'A single cell'], ['cross', '3-D cross'], ['custom', 'Your drawing']],
+  '2d': [['soup', 'Random square at the centre'], ['full', 'Random everywhere'], ['single', 'A single cell'], ['line', 'A straight line'], ['glider', 'Glider'], ['lwss', 'Lightweight spaceship'], ['rpent', 'R-pentomino'], ['acorn', 'Acorn'], ['diehard', 'Diehard'], ['pulsar', 'Pulsar'], ['gun', 'Gosper glider gun'], ['custom', 'Your drawing']],
+  '1d': [['single', 'A single cell'], ['pair', 'Two cells'], ['random', 'Random row'], ['custom', 'Your drawing']],
+};
+function renderInitGroup() {
+  const c = cfg(), m = G.mode, hasCustom = custom[m] && custom[m].N === c.N;
+  if (c.init === 'custom' && !hasCustom) c.init = INITS[m][0][0];
+  const needSize = (m === '3d' && ['cube', 'sphere', 'cross'].includes(c.init)) || (m === '2d' && ['soup', 'line'].includes(c.init));
+  const needDens = (m === '3d' && ['cube', 'sphere', 'full'].includes(c.init)) || (m === '2d' && ['soup', 'full'].includes(c.init)) || (m === '1d' && c.init === 'random');
+  let h = `<select class="sel" id="initSel" aria-label="Starting state">${INITS[m].map(([v, l]) => `<option value="${v}" ${v === 'custom' && !hasCustom ? 'disabled' : ''}>${l}${v === 'custom' && !hasCustom ? ' (draw in Fig. 4)' : ''}</option>`).join('')}</select>`;
+  if (needSize) h += fld('nSize', '<i>k</i>', 1, c.N, 1, Math.min(c.size, c.N), 'cells across');
+  if (needDens) h += fld('nDens', '<i>ρ</i>', 0.02, 1, 0.01, c.density, 'fill density');
+  h += `<div class="fld"><label class="fld-l t" for="nSeed">seed</label><input class="fld-i" id="nSeed" type="number" min="0" max="999999" step="1" value="${G.seed}"><button class="btn" id="seedNew" title="Pick a new random seed">New</button></div>
+    <p class="hint">The same seed always gives the same random start, so a result can be repeated and shared.</p>`;
+  $('gInit').innerHTML = h;
+  $('initSel').value = c.init;
+  $('initSel').onchange = (e) => { c.init = e.target.value; markCustom(); renderInitGroup(); resetSim(); };
+  if (needSize) bindFld('nSize', (v) => { c.size = v; markCustom(); resetSim(); }, false);
+  if (needDens) bindFld('nDens', (v) => { c.density = v; markCustom(); resetSim(); }, false);
+  $('nSeed').onchange = (e) => { G.seed = clamp(+e.target.value | 0, 0, 999999); resetSim(); renderChips(); };
+  $('seedNew').onclick = () => { G.seed = (Math.random() * 999999) | 0; $('nSeed').value = G.seed; resetSim(); renderChips(); if (!playing && G.mode !== '1d') setPlaying(true); };
+}
+function renderLookGroup() {
+  const c = cfg(), m = G.mode;
+  let h = `<div class="lbl">Colour map</div><div class="seg wide cmseg" id="cmapSeg">${Object.entries(CMAPS).map(([k, v]) => `<button class="seg-b" data-v="${k}">${v.name}<span class="sw" style="background:${v.css}"></span></button>`).join('')}</div>`;
+  h += fld('nCell', '<span class="t" style="font:12px var(--f-ui);color:var(--ink-2)">cube</span>', 0.3, 1, 0.02, G.cell, 'of a cell');
+  if (m !== '3d') h += fld('nTs', '<span style="font:12px var(--f-ui);color:var(--ink-2)">time</span>', 0.2, 2, 0.05, c.tscale, 'layer spacing');
+  h += `<div class="row" style="gap:8px 18px">${tgl('tOut', 'Cube outlines', G.outlines)}${m !== '1d' ? tgl('tDying', 'Show dying cells', c.showDying) : ''}</div>`;
+  if (m !== '1d' && c.C <= 2) h += `<p class="hint">“Show dying cells” matters only for rules with more than 2 states.</p>`;
+  $('gLook').innerHTML = h;
+  segBind('cmapSeg', G.cmap, (v) => { G.cmap = v; instDirty = true; sliceDirty = true; renderLegend(); });
+  bindFld('nCell', (v) => { G.cell = v; instDirty = true; placePickBox(); });
+  if (m !== '3d') bindFld('nTs', (v) => { c.tscale = v; buildHelpers(); instDirty = true; placePickBox(); });
+  $('tOut').onchange = (e) => { G.outlines = e.target.checked; if (V.ok) { V.mat.map = G.outlines ? V.tex : null; V.mat.needsUpdate = true; camDirty = true; } };
+  if ($('tDying')) $('tDying').onchange = (e) => { c.showDying = e.target.checked; instDirty = true; };
+}
+const COLOR_BY = {
+  '3d': [['state', 'State'], ['neighbours', 'Neighbours'], ['age', 'Age'], ['distance', 'Distance'], ['height', 'Height'], ['plain', 'Plain']],
+  '2d': [['time', 'Time'], ['state', 'State'], ['neighbours', 'Neighbours'], ['age', 'Age'], ['plain', 'Plain']],
+  '1d': [['time', 'Time'], ['pattern', 'Pattern'], ['age', 'Age'], ['plain', 'Plain']],
+};
+function renderColorSeg() {
+  const c = cfg();
+  if (!COLOR_BY[G.mode].some(([k]) => k === c.colorBy)) c.colorBy = COLOR_BY[G.mode][0][0];
+  $('colorSeg').innerHTML = COLOR_BY[G.mode].map(([k, l]) => `<button class="seg-b" data-v="${k}">${l}</button>`).join('');
+  segBind('colorSeg', c.colorBy, (v) => { c.colorBy = v; instDirty = true; sliceDirty = true; renderLegend(); if (G.mode === '1d') renderFig3(); });
+  renderLegend();
+}
+function renderLegend() {
+  const c = cfg(), cb = c.colorBy, mx = maxNb();
+  const L = { state: ['state', c.C > 2 ? 'last dying' : 'alive', 'alive'], neighbours: ['live neighbours', '0', String(mx)], age: ['age', '1 gen', '64+ gens'], distance: ['distance from centre', 'centre', 'edge'],
+    height: ['height', 'bottom', 'top'], time: ['generation', 'oldest', 'newest'], pattern: ['pattern that made the cell', '000', '111'], plain: ['plain colour', '', ''] }[cb];
+  $('cbName').textContent = L[0]; $('cbMin').textContent = L[1]; $('cbMax').textContent = L[2];
+  const cv = $('cbCanvas'), x = cv.getContext('2d');
+  cv.style.display = cb === 'plain' ? 'none' : '';
+  const lutc = CMAPS[G.cmap].lut;
+  for (let i = 0; i < cv.width; i++) { const li = Math.floor((i / (cv.width - 1)) * 255) * 3; x.fillStyle = `rgb(${lutc[li] * 255 | 0},${lutc[li + 1] * 255 | 0},${lutc[li + 2] * 255 | 0})`; x.fillRect(i, 0, 1, cv.height); }
+  $('cbNote').textContent = G.mode === '3d' ? 'hidden interior cubes are skipped' : G.mode === '2d' ? 'time runs upward, one layer per generation' : 'time runs downward, one row per generation';
+}
+function renderChips() {
+  const c = cfg(), m = G.mode, ch = [];
+  ch.push(['r', m === '1d' ? `rule <span class="num">${c.rule}</span>` : `<span class="num">${esc(ruleString())}</span>`]);
+  ch.push(['N', m === '3d' ? `<span class="num">${c.N}³</span> cells` : m === '2d' ? `<span class="num">${c.N}×${c.N}</span> × ${c.H} gens` : `<span class="num">${c.N}</span> cells × ${c.H} gens`]);
+  ch.push(['∂', c.wrap ? 'wrapped edges' : 'fixed edges']);
+  if (m !== '1d') ch.push(['C', `<span class="num">${c.C}</span> states`]);
+  if (m === '1d') ch.push(['L', c.layout === 'cylinder' ? 'cylinder' : 'flat sheet']);
+  ch.push(['s', `seed <span class="num">${G.seed}</span>`]);
+  $('pchips').innerHTML = ch.map(([i, t]) => `<span class="pchip"><i>${i}</i>${t}</span>`).join('');
+  $('tbRule').textContent = ruleString();
+}
+
+/* =====================================================================
+   Cases, modes, URL state
+   ===================================================================== */
+function buildCaseSelect() {
+  const groups = { '3d': '3-D volume', '2d': '2-D through time', '1d': '1-D through time' };
+  let h = `<option value="" id="optCustom" hidden>Your own settings</option>`;
+  for (const g of ['3d', '2d', '1d']) h += `<optgroup label="${groups[g]}">${CASES.filter((c) => c.g === g).map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</optgroup>`;
+  $('caseSel').innerHTML = h;
+  $('caseSel').onchange = (e) => { if (e.target.value) applyCase(e.target.value); };
+  $('caseReset').onclick = () => { if (G.caseId) applyCase(G.caseId); else { M[G.mode] = clone(DEF[G.mode]); applyMode(true); } };
+}
+function markCustom() {
+  if (!stateReady) return;
+  $('optCustom').hidden = false; $('caseSel').value = '';
+  const cs = CASE_BY_ID[G.caseId];
+  $('caseNote').innerHTML = cs && cs.g === G.mode ? `<b>Modified from “${esc(cs.name)}”.</b> Reset restores the original. ${cs.note.replace(/<b>.*?<\/b>\s*/, '')}` : '<b>Your own settings.</b> Use Copy link to save them.';
+}
+function applyCase(id, opts = {}) {
+  const cs = CASE_BY_ID[id]; if (!cs) return;
+  G.caseId = caseOf[cs.g] = id; G.mode = cs.g; visited[cs.g] = true;
+  M[cs.g] = Object.assign(clone(DEF[cs.g]), clone(cs.c));
+  G.seed = cs.seed !== undefined ? cs.seed : 1;
+  if (cs.g === '3d') SL.y = M['3d'].N >> 1;
+  applyMode(false);
+  $('caseSel').value = id; $('optCustom').hidden = true;
+  $('caseNote').innerHTML = cs.note;
+  if (!opts.paused && cs.g !== '1d') setPlaying(true); else setPlaying(false);
+}
+function applyMode(fromSeg) {
+  segBind('modeSeg', G.mode, onModeSeg);
+  if (fromSeg) { $('caseNote').innerHTML = '<b>Your own settings.</b>'; }
+  $('f1title').textContent = G.mode === '3d' ? 'The automaton in 3-D' : G.mode === '2d' ? 'A 2-D rule through time: each layer is one generation' : 'A 1-D rule through time: each row is one generation';
+  renderRuleGroup(); renderSpaceGroup(); renderInitGroup(); renderLookGroup(); renderColorSeg();
+  resetSim(); buildHelpers(); setView('iso'); renderFig3(); renderF4(); renderChips();
+}
+function onModeSeg(m) {
+  if (m === G.mode) return;
+  if (!visited[m]) { applyCase(CASES.find((c) => c.g === m).id); return; }
+  G.mode = m; G.caseId = caseOf[m];
+  applyMode(false);
+  const cs = CASE_BY_ID[G.caseId];
+  $('optCustom').hidden = false; $('caseSel').value = '';
+  $('caseNote').innerHTML = `<b>Back to the ${m === '3d' ? '3-D volume' : m === '2d' ? '2-D' : '1-D'} settings you had.</b> ` + (cs ? `Reset restores “${esc(cs.name)}” as it was first loaded.` : 'Pick a case to start fresh.');
+  if (m !== '1d') setPlaying(true);
+}
+function encodeState() {
+  const c = clone(cfg()); if (c.init === 'custom') c.init = INITS[G.mode][0][0];
+  const o = { v: 1, m: G.mode, k: G.caseId, g: { seed: G.seed, cmap: G.cmap, cell: G.cell, outlines: G.outlines, box: G.box, floor: G.floor, spin: G.spin, speed: G.speed }, c };
+  return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/=+$/, '');
+}
+function decodeState(h) {
+  try {
+    const o = JSON.parse(decodeURIComponent(escape(atob(h))));
+    if (!o || !['3d', '2d', '1d'].includes(o.m) || typeof o.c !== 'object') return false;
+    const base = clone(DEF[o.m]);
+    for (const k in base) if (o.c[k] !== undefined && typeof o.c[k] === typeof base[k]) base[k] = o.c[k];
+    if (o.m !== '1d') {
+      const mx = o.m === '3d' ? (base.nbh === 'VN' ? 6 : 26) : base.nbh === 'VN' ? 4 : 8;
+      base.B = base.B.map(Number).filter((n) => n >= 0 && n <= mx); base.S = base.S.map(Number).filter((n) => n >= 0 && n <= mx); base.C = clamp(base.C | 0, 2, 24);
+      base.N = clamp(base.N | 0, 12, o.m === '3d' ? 64 : 128); if (o.m === '2d') base.H = clamp(base.H | 0, 8, 160);
+    } else { base.rule = clamp(base.rule | 0, 0, 255); base.N = clamp(base.N | 0, 21, 301); base.H = clamp(base.H | 0, 10, 240); }
+    const g = o.g || {};
+    if (Number.isFinite(g.seed)) G.seed = clamp(g.seed | 0, 0, 999999);
+    if (CMAPS[g.cmap]) G.cmap = g.cmap;
+    if (Number.isFinite(g.cell)) G.cell = clamp(g.cell, 0.3, 1);
+    for (const k of ['outlines', 'box', 'floor', 'spin']) if (typeof g[k] === 'boolean') G[k] = g[k];
+    if (Number.isFinite(g.speed)) G.speed = clamp(g.speed | 0, 1, 60);
+    G.mode = o.m; M[o.m] = base; visited[o.m] = true; G.caseId = caseOf[o.m] = CASE_BY_ID[o.k] && CASE_BY_ID[o.k].g === o.m ? o.k : '';
+    if (o.m === '3d') SL.y = base.N >> 1;
+    return true;
+  } catch (e) { return false; }
+}
+function copyLink() {
+  const url = location.href.split('#')[0] + '#' + encodeState();
+  let inBar = true;
+  try { history.replaceState(null, '', url); } catch (e) { inBar = false; }
+  const done = () => toast(cfg().init === 'custom' ? 'Link copied. It keeps the rule and settings; drawn seeds are not included.' : 'Link copied. Opening it restores these settings.');
+  const fail = () => toast(inBar ? 'Copying was blocked; the link is in the address bar, so copy it from there.' : 'Copying was blocked by the browser.');
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, fail); else fail();
+}
+function savePNG() {
+  if (!V.ok) { toast('The 3-D view is not available.'); return; }
+  applyCam(); V.renderer.render(V.scene, V.camera);
+  const src = V.renderer.domElement, c = document.createElement('canvas'); c.width = src.width; c.height = src.height;
+  const x = c.getContext('2d'), g = x.createRadialGradient(c.width / 2, c.height * 0.35, 0, c.width / 2, c.height * 0.35, Math.max(c.width, c.height) * 0.75);
+  g.addColorStop(0, TC.v3bg); g.addColorStop(1, TC.v3bg2); x.fillStyle = g; x.fillRect(0, 0, c.width, c.height); x.drawImage(src, 0, 0);
+  const a = document.createElement('a'); a.download = `cellular-automaton-${ruleString().replace(/[^A-Za-z0-9-]+/g, '_')}-gen${sim.gen}.png`; a.href = c.toDataURL('image/png'); a.click();
+  toast('Image saved.');
+}
+
+/* =====================================================================
+   Controls, theme, loop
+   ===================================================================== */
+function setPlaying(p) {
+  playing = p;
+  $('playBtn').innerHTML = p ? '<svg viewBox="0 0 12 12"><rect x="2" y="1.5" width="3" height="9"/><rect x="7" y="1.5" width="3" height="9"/></svg>Pause' : '<svg viewBox="0 0 12 12"><path d="M2.5 1.5 L10.5 6 L2.5 10.5 Z"/></svg>Play';
+  if (p && G.mode !== '1d' && sim.occ === 0) { playing = false; setPlaying(false); toast('Nothing is alive. Restart, or draw some cells in Fig. 4.'); return; }
+  uiDirty = true;
+}
+function dismissHint() { const h = $('v3hint'); if (!h.hidden) { h.hidden = true; lsSet('caw-hint', '1'); } }
+function applyTheme(t) {
+  G.theme = t;
+  if (t === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
+  lsSet('caw-theme', t); segBind('themeSeg', t, applyTheme); readTheme();
+}
+function bindStatic() {
+  $('playBtn').onclick = () => setPlaying(!playing);
+  $('stepBtn').onclick = () => { setPlaying(false); stepSim(); };
+  $('restartBtn').onclick = () => { resetSim(); };
+  document.querySelectorAll('[data-view]').forEach((b) => (b.onclick = () => setView(b.dataset.view)));
+  $('speed').value = G.speed; $('speedV').textContent = G.speed + ' /s';
+  $('speed').oninput = (e) => { G.speed = +e.target.value; $('speedV').textContent = G.speed + ' /s'; };
+  $('tBox').checked = G.box; $('tFloor').checked = G.floor; $('tSpin').checked = G.spin;
+  $('tBox').onchange = (e) => { G.box = e.target.checked; if (V.boxObj) V.boxObj.visible = G.box; camDirty = true; };
+  $('tFloor').onchange = (e) => { G.floor = e.target.checked; if (V.floorObj) V.floorObj.visible = G.floor; camDirty = true; };
+  $('tSpin').onchange = (e) => { G.spin = e.target.checked; };
+  $('hintX').onclick = dismissHint;
+  if (lsGet('caw-hint')) $('v3hint').hidden = true;
+  $('linkBtn').onclick = copyLink; $('pngBtn').onclick = savePNG;
+  $('xps').innerHTML = EXPERIMENTS.map(([id, t, q]) => `<div class="xp"><h4>${esc(t)}</h4><p>${esc(q)}</p><button class="btn" data-case="${id}">Load “${esc(CASE_BY_ID[id].name)}”</button></div>`).join('');
+  $('xps').addEventListener('click', (e) => { const b = e.target.closest('[data-case]'); if (!b) return; applyCase(b.dataset.case); $('fig1').scrollIntoView({ behavior: 'smooth' }); });
+  document.addEventListener('keydown', (e) => {
+    if (e.target.closest('input, select, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === ' ') { e.preventDefault(); setPlaying(!playing); }
+    else if (e.key === 'ArrowRight' || e.key === '.') { e.preventDefault(); setPlaying(false); stepSim(); }
+    else if (e.key === 'r' || e.key === 'R') resetSim();
+    else if (e.key === 'f' || e.key === 'F') setView('fit');
+    else if (e.key === 'Escape') clearPick();
+  });
+  try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (G.theme === 'auto') readTheme(); }); } catch (e) { /* old browsers */ }
+  new ResizeObserver(() => { drawChart(); sliceDirty = true; }).observe($('chartWrap'));
+  bindChart(); bindSlice();
+}
+
+let lastT = performance.now(), acc = 0, uiDue = 0, stateReady = false;
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+  if (playing) {
+    acc += dt * G.speed; let k = 0;
+    while (acc >= 1 && k < 4 && playing) { stepSim(); acc -= 1; k++; }
+    if (acc > 4) acc = 0;
+  }
+  if (G.spin && V.ok) { V.orbit.az += dt * 0.3; camDirty = true; }
+  if (instDirty && V.ok) { rebuildInstances(); instDirty = false; }
+  if (camDirty && V.ok) { applyCam(); V.renderer.render(V.scene, V.camera); drawGizmo(); camDirty = false; }
+  if ((uiDirty || sliceDirty) && now >= uiDue) { updateStatsUI(); uiDirty = false; uiDue = now + (playing ? 90 : 0); }
+}
+
+/* =====================================================================
+   Start
+   ===================================================================== */
+const th = lsGet('caw-theme');
+G.theme = th === 'light' || th === 'dark' ? th : 'auto';
+if (G.theme !== 'auto') document.documentElement.dataset.theme = G.theme;
+segBind('themeSeg', G.theme, applyTheme);
+// On narrow screens the setup sheet sits above the figures: start it folded so the 3-D view is close.
+if (window.innerWidth < 1100) document.querySelectorAll('.setup details').forEach((d) => { d.open = false; });
+readTheme();
+initThree();
+buildCaseSelect();
+bindStatic();
+stateReady = true;
+const fromHash = location.hash.length > 1 && decodeState(location.hash.slice(1));
+if (fromHash) {
+  applyMode(false);
+  const cs = CASE_BY_ID[G.caseId];
+  const pristine = cs && cs.g === G.mode && JSON.stringify(Object.assign(clone(DEF[cs.g]), clone(cs.c))) === JSON.stringify(cfg()) && G.seed === (cs.seed !== undefined ? cs.seed : 1);
+  if (pristine) { $('caseSel').value = G.caseId; $('optCustom').hidden = true; $('caseNote').innerHTML = cs.note; }
+  else if (cs && cs.g === G.mode) markCustom();
+  else { G.caseId = caseOf[G.mode] = ''; $('optCustom').hidden = false; $('caseSel').value = ''; $('caseNote').innerHTML = '<b>Opened from a shared link.</b> Pick a case to start fresh.'; }
+  $('speed').value = G.speed; $('speedV').textContent = G.speed + ' /s'; $('tBox').checked = G.box; $('tFloor').checked = G.floor; $('tSpin').checked = G.spin;
+  if (V.ok) { V.mat.map = G.outlines ? V.tex : null; V.mat.needsUpdate = true; }
+  setPlaying(G.mode !== '1d');
+} else applyCase('symmetry');
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
