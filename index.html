@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <!-- Cellular Automata Explorer · Copyright (c) 2026 Hossein Basereh · All rights reserved -->
 <title>Cellular Automata Explorer</title>
-<meta name="description" content="Interactive 3-D cellular automata explorer: 3-D life-like rules with decay states, 2-D rules stacked through time, and Wolfram's elementary rules. Change the rule, draw a seed and watch structure emerge.">
+<meta name="description" content="Interactive 3-D cellular automata explorer for learning: 3-D life-like rules, 2-D rules stacked through time, elementary and reversible 1-D rules, cyclic and excitable automata, and continuous automata (Lenia, Gray–Scott). Change the rule, draw a seed and watch structure emerge.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap">
@@ -70,15 +70,18 @@ i.m, .mi { font-family: var(--f-math); font-style: italic; }
 .tb h1 { margin: 0; font-size: clamp(25px, 3vw, 38px); line-height: 1.02; font-weight: 760; font-stretch: 115%; letter-spacing: .01em; text-transform: uppercase; text-wrap: balance; }
 .tb-sub { margin: 8px 0 0; max-width: 70ch; color: var(--ink-2); font-size: 13.5px; }
 .tb-grid { margin: 0; display: grid; grid-template-columns: 1fr 1fr; }
-.tb-c { padding: 10px 14px; border-bottom: 1px solid var(--rule-2); border-right: 1px solid var(--rule-2); min-width: 0; }
-.tb-c:nth-child(2n) { border-right: 0; }
-.tb-c:nth-child(n+3) { border-bottom: 0; }
+.tb-c { padding: 10px 14px; border-bottom: 1px solid var(--rule-2); min-width: 0; }
+.tb-c.c1 { border-right: 1px solid var(--rule-2); }
+.tb-c.span2 { grid-column: 1 / -1; }
+.tb-c:last-child { border-bottom: 0; }
+#modeSeg .seg-b { padding: 0 4px; }
 .tb-c dt { font-size: 10.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); font-stretch: 85%; margin-bottom: 5px; }
 .tb-c dd { margin: 0; font-size: 13.5px; font-weight: 550; min-width: 0; }
 .tb-rule { font-family: var(--f-math); font-size: 15px; font-weight: 400; overflow-wrap: anywhere; }
 .tb-beh { font-size: 12.5px; font-weight: 450; color: var(--ink-2); display: flex; gap: 6px 8px; align-items: center; flex-wrap: wrap; }
 @media (max-width: 900px) { .tb { grid-template-columns: minmax(0, 1fr); } .tb-name { border-right: 0; border-bottom: 1.5px solid var(--ink); } }
-@media (max-width: 520px) { .tb-grid { grid-template-columns: minmax(0, 1fr); } .tb-c { border-right: 0 !important; border-bottom: 1px solid var(--rule-2) !important; } .tb-c:last-child { border-bottom: 0 !important; } }
+@media (max-width: 520px) { .tb-grid { grid-template-columns: minmax(0, 1fr); } .tb-c { border-right: 0 !important; border-bottom: 1px solid var(--rule-2) !important; } .tb-c:last-child { border-bottom: 0 !important; }
+  #modeSeg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); } #modeSeg .seg-b { border-bottom: 1px solid var(--rule); } }
 
 /* ---------- jump bar ---------- */
 .jump { position: sticky; top: 0; z-index: 6; display: flex; gap: 2px; align-items: center; background: var(--paper); border-bottom: 1px solid var(--rule-2); padding: 6px 0; margin-top: 12px; }
@@ -283,6 +286,20 @@ svg rect.off { fill: var(--field); stroke: var(--rule-2); stroke-width: 1; }
 .rt text { font: 12px var(--f-math); fill: var(--ink-3); text-anchor: middle; }
 .rt text.bit { font-size: 15px; fill: var(--ink); }
 
+.f3-eq { font-family: var(--f-math); font-size: 16px; color: var(--ink); margin: 0 0 6px; line-height: 1.7; }
+.f3-eq i { font-style: italic; }
+.kern { display: block; width: 120px; height: 120px; image-rendering: pixelated; border: 1px solid var(--rule-2); }
+.plot-l { fill: none; stroke: var(--ink); stroke-width: 1.6; }
+.plot-z { stroke: var(--ink-3); stroke-width: 1; stroke-dasharray: 3 3; }
+.plot-m { stroke: var(--blue); stroke-width: 1.2; stroke-dasharray: 4 3; }
+.plot-pk { fill: var(--hl); stroke: var(--sheet); stroke-width: 1.5; }
+.pm-pt { fill: var(--ink-3); cursor: pointer; }
+.pm-pt:hover { fill: var(--blue); }
+.pm-cur { fill: var(--hl); stroke: var(--ink); stroke-width: 1.5; }
+.pm-bg { fill: var(--field); stroke: var(--rule-2); cursor: crosshair; }
+.wheel-a { fill: none; stroke: var(--ink-3); stroke-width: 1.2; }
+.wheel-t { font: 11px var(--f-ui); fill: var(--ink-2); text-anchor: middle; dominant-baseline: middle; }
+
 /* ---------- Fig 4 ---------- */
 .f4 { display: grid; grid-template-columns: minmax(0, 520px) minmax(220px, 1fr); gap: 16px 24px; align-items: start; }
 .f4.one { grid-template-columns: minmax(0, 1fr); }
@@ -329,13 +346,15 @@ h3.sub { margin: 18px 0 0; font-size: 11px; font-weight: 650; letter-spacing: .1
       <p class="tb-sub">Every cell follows the same short rule, looking only at its neighbours, yet crystals, clouds, gliders and fractals appear. Pick a case, press play, then change one number and see what happens.</p>
     </div>
     <dl class="tb-grid">
-      <div class="tb-c"><dt>Case library</dt><dd class="row"><select class="sel grow" id="caseSel" aria-label="Case library"></select><button class="btn" id="caseReset" title="Restore this case's original settings">Reset</button></dd></div>
-      <div class="tb-c"><dt>Automaton</dt><dd><div class="seg wide" id="modeSeg">
+      <div class="tb-c c1"><dt>Case library</dt><dd class="row"><select class="sel grow" id="caseSel" aria-label="Case library"></select><button class="btn" id="caseReset" title="Restore this case's original settings">Reset</button></dd></div>
+      <div class="tb-c"><dt>Behaviour</dt><dd class="tb-beh" id="tbBeh"></dd></div>
+      <div class="tb-c span2"><dt>Automaton</dt><dd><div class="seg wide" id="modeSeg">
         <button class="seg-b" data-v="3d" title="Life-like rules in a 3-D volume">3-D volume</button>
         <button class="seg-b" data-v="2d" title="A 2-D rule; time is stacked upward">2-D + time</button>
-        <button class="seg-b" data-v="1d" title="An elementary 1-D rule; time runs downward">1-D + time</button></div></dd></div>
-      <div class="tb-c"><dt>Rule</dt><dd class="tb-rule" id="tbRule"></dd></div>
-      <div class="tb-c"><dt>Behaviour</dt><dd class="tb-beh" id="tbBeh"></dd></div>
+        <button class="seg-b" data-v="1d" title="An elementary 1-D rule; time runs downward">1-D + time</button>
+        <button class="seg-b" data-v="cyc" title="Cyclic and excitable automata: colours chase each other round a loop">Cyclic</button>
+        <button class="seg-b" data-v="cont" title="Continuous automata: real-valued cells, smooth kernels (Lenia) and reaction–diffusion">Continuous</button></div></dd></div>
+      <div class="tb-c span2"><dt>Rule</dt><dd class="tb-rule" id="tbRule"></dd></div>
     </dl>
   </header>
 
@@ -367,6 +386,7 @@ h3.sub { margin: 18px 0 0; font-size: 11px; font-weight: 650; letter-spacing: .1
           <div class="tools left">
             <button class="btn primary" id="playBtn" title="Play / pause (Space)"></button>
             <button class="btn" id="stepBtn" title="One generation (→)">Step</button>
+            <button class="btn" id="revBtn" title="Run a reversible rule backwards from here" hidden>⇄ Reverse</button>
             <button class="btn" id="restartBtn" title="Back to generation 0 (R)">Restart</button>
             <span class="vsep"></span>
             <button class="btn" data-view="iso">Iso</button><button class="btn" data-view="front">Front</button><button class="btn" data-view="top">Top</button><button class="btn" data-view="side">Side</button><button class="btn" data-view="fit" title="Fit (F)">Fit</button>
@@ -397,12 +417,12 @@ h3.sub { margin: 18px 0 0; font-size: 11px; font-weight: 650; letter-spacing: .1
         <div class="plate-h"><span class="fig">Fig. 2</span><h2>Population and behaviour</h2><div class="tools"><span class="plot-r" id="popRead"></span></div></div>
         <div class="tiles">
           <div class="tile"><div class="tile-l">Generation</div><div class="tile-v" id="tGen"></div><div class="tile-s" id="tGenS"></div></div>
-          <div class="tile"><div class="tile-l">Live cells</div><div class="tile-v" id="tAlive"></div><div class="tile-s" id="tAliveS"></div></div>
-          <div class="tile"><div class="tile-l">Births · deaths</div><div class="tile-v" id="tBD"></div><div class="tile-s">in the last generation</div></div>
+          <div class="tile"><div class="tile-l" id="tAliveL">Live cells</div><div class="tile-v" id="tAlive"></div><div class="tile-s" id="tAliveS"></div></div>
+          <div class="tile"><div class="tile-l" id="tBDL">Births · deaths</div><div class="tile-v" id="tBD"></div><div class="tile-s" id="tBDS">in the last generation</div></div>
           <div class="tile"><div class="tile-l">Behaviour</div><div class="tile-v" id="tBeh"></div><div class="tile-s" id="tBehS"></div></div>
         </div>
         <div class="chart" id="chartWrap"><svg id="popSvg" aria-label="Population over time"></svg></div>
-        <p class="cap">Behaviour is a heuristic. A repeat of the whole state within the last 500 generations means the pattern is fixed or periodic; otherwise the population trend decides between growing, shrinking and still changing. Hover the chart to read any generation.</p>
+        <p class="cap">Behaviour is a heuristic. A repeat of the whole state within the last 500 generations means the pattern is fixed or periodic; otherwise the trend decides between growing, shrinking and still changing. Hover the chart to read any generation.</p>
       </section>
 
       <!-- Fig 3 -->
@@ -430,8 +450,16 @@ h3.sub { margin: 18px 0 0; font-size: 11px; font-weight: 650; letter-spacing: .1
         <div class="plate-h"><span class="fig">Fig. 5</span><h2>Learn: how cellular automata work</h2></div>
         <div class="learn">
           <div class="lc"><h3>What is a cellular automaton?</h3>
-            <p>A grid of cells, each in one of a few <b>states</b>. At every tick of a clock, every cell looks at its <b>neighbourhood</b> and applies the same <b>rule</b> to decide its next state. All cells update at once.</p>
+            <p>A grid of cells, each in some <b>state</b>. At every tick of a clock, every cell looks at its <b>neighbourhood</b> and applies the same <b>rule</b> to decide its next state.</p>
             <p>Nothing is global: no cell knows the overall shape. The shapes you see are <b>emergent</b>, built only from local interactions.</p></div>
+          <div class="lc"><h3>The seven ingredients</h3>
+            <ol><li><b>Lattice</b>: the grid (a row, a square, a cube). Space settings.</li>
+              <li><b>States</b>: on/off, several colours, or a real number (Continuous mode).</li>
+              <li><b>Neighbourhood</b>: Moore, von Neumann, a range <i>r</i>, or a smooth kernel.</li>
+              <li><b>Rule</b>: how the neighbourhood decides the next state.</li>
+              <li><b>Update scheme</b>: all cells at once, or a random fraction <i>p</i>.</li>
+              <li><b>Boundary</b>: wrapped edges (a torus) or a fixed empty border.</li>
+              <li><b>Initial state</b>: a seed, random noise, or your own drawing.</li></ol></div>
           <div class="lc"><h3>Reading a rule string</h3>
             <p><b>B</b> lists the live-neighbour counts at which an empty cell is <b>born</b>; <b>S</b> lists the counts at which a live cell <b>survives</b>. Conway's Life is <span class="num">B3/S23</span>.</p>
             <p><b>C</b> is the number of states. With <span class="num">C &gt; 2</span>, a cell that fails to survive decays through <span class="num">C − 2</span> dying states before it is empty again. Dying cells don't count as live neighbours. <b>M</b> and <b>VN</b> name the neighbourhood.</p></div>
@@ -444,6 +472,24 @@ h3.sub { margin: 18px 0 0; font-size: 11px; font-weight: 650; letter-spacing: .1
           <div class="lc"><h3>Four classes of behaviour</h3>
             <ol><li><b>Uniform</b>: everything dies or fills (Class 1).</li><li><b>Periodic</b>: settles into still or repeating structures (Class 2).</li><li><b>Chaotic</b>: random-looking forever (Class 3, e.g. Rule 30).</li><li><b>Complex</b>: localised structures that move and interact (Class 4, e.g. Rule 110 and Life).</li></ol>
             <p style="margin-top:8px">This scheme, proposed by Stephen Wolfram, is descriptive, not exact. Fig. 2 makes a quick guess for the current run.</p></div>
+          <div class="lc"><h3>The edge of chaos: Langton's λ</h3>
+            <p><b>λ</b> is the fraction of all neighbourhood patterns that produce a live cell. Near 0, everything dies (Class 1); near 0.5, behaviour is chaotic (Class 3).</p>
+            <p>Complex, computation-like behaviour tends to sit in between, at the “edge of chaos”: Conway's Life has λ ≈ 0.273. Fig. 3 shows λ for the current rule.</p></div>
+          <div class="lc"><h3>Cyclic and excitable automata</h3>
+            <p>In a <b>cyclic</b> automaton the κ colours form a loop. A cell advances to the next colour only when at least θ of its neighbours (within range <i>r</i>) already have it, so colours chase each other.</p>
+            <p>From random noise, debris gives way to rotating <b>spirals</b>. The <b>Greenberg–Hastings</b> variant models excitable media (heart muscle, nerve tissue, the BZ reaction): a resting cell fires when stimulated, then must recover.</p></div>
+          <div class="lc"><h3>Continuous automata</h3>
+            <p>States become real numbers between 0 and 1. In <b>Lenia</b> each cell takes a weighted average over a smooth ring of neighbours (the <b>kernel</b>), passes it through a <b>growth function</b>, and changes by a small time step <i>dt</i>. Lifelike “creatures” such as Orbium glide across the grid.</p>
+            <p><b>Reaction–diffusion</b> (Gray–Scott) is another continuous automaton: two chemicals spread and react, making spots, stripes and dividing cells, as Turing proposed for animal markings.</p></div>
+          <div class="lc"><h3>Update schemes</h3>
+            <p>The classic rule is <b>synchronous</b>: every cell reads the old grid, then all change at once. Set the update probability <i>p</i> below 1 and only a random fraction of cells updates each step (<b>stochastic</b>, or asynchronous, updating).</p>
+            <p>Many famous patterns, including oscillators, gliders and perfect symmetry, depend on synchrony and fall apart when <i>p</i> &lt; 1.</p></div>
+          <div class="lc"><h3>Reversibility and information</h3>
+            <p>Most rules <b>forget</b>: different grids can lead to the same next grid, so the past cannot be recovered, and some grids (“Gardens of Eden”) have no past at all.</p>
+            <p>A <b>second-order</b> rule makes any rule reversible: new = rule(current) XOR previous. In 1-D mode, tick <i>Reversible</i>, run, then press <b>Reverse</b> to watch history unwind.</p></div>
+          <div class="lc"><h3>Further concepts (explained, not simulated)</h3>
+            <p><b>Other lattices</b>: hexagonal and triangular grids, or cells on any network. <b>Computation</b>: Rule 110 and Life are Turing-complete, and Wireworld builds logic gates from 4 states.</p>
+            <p><b>Self-reproduction</b>: von Neumann's 29-state constructor and Langton's loops copy themselves. <b>Probabilistic</b> rules model forest fires and epidemics.</p></div>
           <div class="lc"><h3>Using the Explorer</h3>
             <ul><li><kbd>Space</kbd> play or pause · <kbd>→</kbd> one step · <kbd>R</kbd> restart · <kbd>F</kbd> fit view</li>
               <li>Click a cell in Fig. 1 to see its neighbour count and what the rule does with it.</li>
@@ -460,12 +506,20 @@ h3.sub { margin: 18px 0 0; font-size: 11px; font-weight: 650; letter-spacing: .1
           <li>C. Bays, “Candidates for the Game of Life in three dimensions”, <i>Complex Systems</i> 1, 373–400, 1987.</li>
           <li>S. Wolfram, <i>A New Kind of Science</i>. Wolfram Media, 2002.</li>
           <li>M. Cook, “Universality in elementary cellular automata”, <i>Complex Systems</i> 15, 1–40, 2004.</li>
+          <li>A. M. Turing, “The chemical basis of morphogenesis”, <i>Philosophical Transactions of the Royal Society B</i> 237, 37–72, 1952.</li>
+          <li>J. M. Greenberg and S. P. Hastings, “Spatial patterns for discrete models of diffusion in excitable media”, <i>SIAM Journal on Applied Mathematics</i> 34(3), 515–523, 1978.</li>
+          <li>T. Toffoli and N. Margolus, <i>Cellular Automata Machines</i>. MIT Press, 1987.</li>
+          <li>C. G. Langton, “Computation at the edge of chaos: phase transitions and emergent computation”, <i>Physica D</i> 42, 12–37, 1990.</li>
+          <li>R. Fisch, J. Gravner and D. Griffeath, “Threshold-range scaling of excitable cellular automata”, <i>Statistics and Computing</i> 1, 23–39, 1991.</li>
+          <li>J. E. Pearson, “Complex patterns in a simple system”, <i>Science</i> 261, 189–192, 1993.</li>
+          <li>S. Rafler, “Generalization of Conway's ‘Game of Life’ to a continuous domain: SmoothLife”, arXiv:1111.1567, 2011.</li>
+          <li>B. W.-C. Chan, “Lenia: Biology of Artificial Life”, <i>Complex Systems</i> 28(3), 251–286, 2019.</li>
         </ol>
       </section>
     </main>
   </div>
 
-  <footer class="foot"><span>© 2026 Hossein Basereh. All rights reserved.</span><span>3-D rendering: three.js (MIT licence).</span><span>A learning tool: rule names follow common usage in the cellular-automata community.</span></footer>
+  <footer class="foot"><span>© 2026 Hossein Basereh. All rights reserved.</span><span>3-D rendering: three.js (MIT licence).</span><span>Orbium pattern from Lenia, © 2018 Bert Chan (MIT licence).</span><span>A learning tool: rule names follow common usage in the cellular-automata community.</span></footer>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -481,6 +535,7 @@ const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const range = (a, b) => { const r = []; for (let i = a; i <= b; i++) r.push(i); return r; };
 const fmt = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+const fmtD = (n, d) => (Math.abs(n) >= 100 ? fmt(n) : n.toFixed(d));
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const clone = (o) => JSON.parse(JSON.stringify(o));
 function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -495,9 +550,15 @@ function listWords(a) {
   const parts = []; for (let i = 0; i < a.length;) { let j = i; while (j + 1 < a.length && a[j + 1] === a[j] + 1) j++; if (j - i >= 2) parts.push(a[i] + '–' + a[j]); else for (let k = i; k <= j; k++) parts.push(String(a[k])); i = j + 1; }
   return parts.length === 1 ? parts[0] : parts.slice(0, -1).join(', ') + ' or ' + parts[parts.length - 1];
 }
+function binom(n, k) { if (k < 0 || k > n) return 0; let r = 1; for (let i = 1; i <= k; i++) r = (r * (n - k + i)) / i; return r; }
+function popcount(x) { let c = 0; while (x) { c += x & 1; x >>= 1; } return c; }
+function hsl2hex(h, s, l) {
+  const a = s * Math.min(l, 1 - l), f = (n) => { const k = (n + h / 30) % 12; return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+  return '#' + [f(0), f(8), f(4)].map((v) => Math.round(v * 255).toString(16).padStart(2, '0')).join('');
+}
 
 /* =====================================================================
-   Patterns (2-D), colour maps
+   Patterns (2-D), Orbium (continuous), colour maps
    ===================================================================== */
 const PATTERNS = {
   glider: ['.O.', '..O', 'OOO'],
@@ -511,11 +572,20 @@ const PATTERNS = {
     '...........O...O....OO............OO', 'OO........O.....O...OO..............', 'OO........O...O.OO....O.O...........',
     '..........O.....O.......O...........', '...........O...O....................', '............OO......................'],
 };
+// Orbium unicaudatus, 20 × 20 cells, values 0–255 in hex. From Lenia (github.com/Chakazul/Lenia), © 2018 Bert Chan, MIT licence.
+const ORBIUM = ['000000000000000d040000000000003c00000000', '0000000000002335361512191a12014100000000', '000000000016445b6257302f2c2f2d1b59000000',
+  '0000000003115974776121140e101f37b4000000', '00000009212f5767624822000000000c66540000', '010004232b221c3f454335000000000005dc0000',
+  '3c001a2c140000334f5e5f3d0000000000742800', '001f2f1c000000456d8189820000000000008400', '009637080000003087a2aeae6b00000000006d00',
+  '008d3c00000000079ec1d6dace1b000000004819', '0000980000000000aadff5fdf88f000000003924', '0000d6000000000081f7ffffffe9470000063822',
+  '00008d130000000055fffffafff88e280d1e3e16', '00000872000000002dd9ffe4dcdda65532373b0a', '0000006c1d0000001d9ee0d2c7bd9c684b442a00',
+  '00000014551300001e6cacb8ada086674f391000', '000000002a42261e2c567f8e8b7f6d563e1e0000', '0000000000253b3c4251636c695c4e3a20050000',
+  '000000000000122b3a404647423b2a1805000000', '00000000000000000f1a21221e140b0000000000'];
 const CMAPS = {
   spectrum: { name: 'Spectrum', stops: ['#1032c8', '#0a8cff', '#00d5e6', '#2fd84a', '#e6e619', '#ff9f0a', '#f0281e'] },
   viridis: { name: 'Viridis', stops: ['#440154', '#472d7b', '#3b528b', '#2c728e', '#21918c', '#28ae80', '#5ec962', '#addc30', '#fde725'] },
   magma: { name: 'Magma', stops: ['#2a115c', '#51127c', '#822681', '#b73779', '#e75263', '#fc8961', '#fec488', '#fcfdbf'] },
   ice: { name: 'Ice', stops: ['#1d2a5c', '#2f5aa8', '#3f8fd6', '#77c3ea', '#bfe6f5', '#f2fbff'] },
+  hue: { name: 'Hue', stops: range(0, 8).map((i) => hsl2hex((i * 45) % 360, 0.78, 0.55)) }, // cyclic: the last stop equals the first
 };
 function hexRGB(h) { const n = parseInt(h.slice(1), 16); return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]; }
 for (const k in CMAPS) {
@@ -526,12 +596,16 @@ for (const k in CMAPS) {
 }
 
 /* =====================================================================
-   Case library
+   Modes and case library
    ===================================================================== */
+const MODES = ['3d', '2d', '1d', 'cyc', 'cont'];
+const MODE_NAME = { '3d': '3-D volume', '2d': '2-D + time', '1d': '1-D + time', cyc: 'Cyclic', cont: 'Continuous' };
 const DEF = {
-  '3d': { B: [4], S: [4], C: 5, nbh: 'M', N: 40, wrap: true, init: 'cube', size: 6, density: 0.5, colorBy: 'state', showDying: true },
-  '2d': { B: [3], S: [2, 3], C: 2, nbh: 'M', N: 64, H: 80, wrap: true, init: 'rpent', size: 24, density: 0.35, colorBy: 'time', tscale: 1, showDying: true },
-  '1d': { rule: 30, N: 161, H: 100, wrap: true, init: 'single', density: 0.5, layout: 'sheet', colorBy: 'time', tscale: 1 },
+  '3d': { B: [4], S: [4], C: 5, nbh: 'M', N: 40, wrap: true, init: 'cube', size: 6, density: 0.5, colorBy: 'state', showDying: true, p: 1 },
+  '2d': { B: [3], S: [2, 3], C: 2, nbh: 'M', N: 64, H: 80, wrap: true, init: 'rpent', size: 24, density: 0.35, colorBy: 'time', tscale: 1, showDying: true, p: 1 },
+  '1d': { rule: 30, N: 161, H: 100, wrap: true, init: 'single', density: 0.5, layout: 'sheet', colorBy: 'time', tscale: 1, rev: false },
+  cyc: { K: 14, T: 1, R: 1, nbh: 'VN', gh: false, N: 128, H: 60, wrap: true, init: 'random', size: 64, density: 1, colorBy: 'state', view: 'surface', hscale: 0.5, tscale: 1, band: 0, p: 1 },
+  cont: { fam: 'lenia', R: 13, mu: 0.15, sigma: 0.015, dt: 0.1, beta: [1], F: 0.055, k: 0.062, sub: 12, N: 128, H: 60, wrap: true, init: 'orbium', size: 48, density: 0.5, colorBy: 'value', view: 'surface', hscale: 1, tscale: 1, iso: 0.3 },
 };
 const CASES = [
   { id: 'symmetry', g: '3d', name: 'Symmetry · expanding shells', c: { B: [2], S: [], C: 10, N: 48, init: 'cube', size: 2, density: 1, colorBy: 'state' },
@@ -565,6 +639,8 @@ const CASES = [
     note: '<b>An oscillator.</b> The pulsar cycles through 3 shapes. Stacked in time it becomes a column whose pattern repeats every 3 layers.' },
   { id: 'life-soup', g: '2d', name: 'Random soup', c: { B: [3], S: [2, 3], N: 64, H: 80, init: 'soup', size: 40, density: 0.35, colorBy: 'age' },
     note: '<b>Random start, Conway\'s rule.</b> Chaos burns out into the familiar debris: blocks and beehives (straight columns), blinkers (braids) and the occasional glider escaping diagonally. Colour by age makes the long-lived still lifes stand out.' },
+  { id: 'life-async', g: '2d', name: 'Life with random updates · p = 0.5', c: { B: [3], S: [2, 3], N: 64, H: 80, init: 'soup', size: 40, density: 0.35, colorBy: 'time', p: 0.5 },
+    note: '<b>Same rule, different update scheme.</b> Each step only a random half of the cells updates (p = 0.5). Blinkers, gliders and the familiar debris no longer form, because they rely on every cell changing at once. Compare with “Random soup”.' },
   { id: 'brain', g: '2d', name: "Brian's Brain", c: { B: [2], S: [], C: 3, N: 64, H: 70, init: 'soup', size: 24, density: 0.35, colorBy: 'state' },
     note: '<b>B2/S/C3</b> (Brian Silverman). No cell survives: each fires once, then spends one generation “refractory” and can\'t be reborn. The result is a storm of travelling sparks.' },
   { id: 'starwars', g: '2d', name: 'Star Wars', c: { B: [2], S: [3, 4, 5], C: 4, N: 64, H: 70, init: 'soup', size: 24, density: 0.4, colorBy: 'state' },
@@ -594,6 +670,32 @@ const CASES = [
     note: '<b>Rule 150</b> is the XOR of a cell and both neighbours. Like Rule 90 it is additive, so patterns superimpose; its fractal is denser.' },
   { id: 'r54', g: '1d', name: 'Rule 54 · particles', c: { rule: 54, N: 161, H: 120, init: 'random', density: 0.5, colorBy: 'pattern' },
     note: '<b>Rule 54</b> is another candidate Class 4 rule: a regular background carrying particles that collide and annihilate.' },
+  { id: 'r150rev', g: '1d', name: 'Rule 150R · reversible', c: { rule: 150, N: 161, H: 120, init: 'single', rev: true, colorBy: 'time' },
+    note: '<b>A second-order rule.</b> Each new row is Rule 150 applied to the current row, XOR the row before it. That makes the rule reversible: nothing is ever forgotten. Press <b>⇄ Reverse</b> and play: the history unwinds back to the single starting cell, and the space-time picture becomes a mirror image of itself.' },
+
+  { id: 'cyc-demons', g: 'cyc', name: 'Spiral demons · 14 colours', speed: 40, cmap: 'hue', c: { K: 14, T: 1, R: 1, nbh: 'VN', N: 128, init: 'random' },
+    note: '<b>Griffeath\'s cyclic automaton.</b> 14 colours in a loop; a cell moves to the next colour as soon as one neighbour already has it. Random noise first forms blotchy debris, then rotating spirals (“demons”) appear and gradually take over the whole grid.' },
+  { id: 'cyc-spiral', g: 'cyc', name: 'One spiral from a phase singularity', speed: 25, cmap: 'hue', c: { K: 12, T: 1, R: 1, nbh: 'M', N: 96, init: 'spiral' },
+    note: '<b>A single defect.</b> The colours are laid out round a point like the hours on a clock face. That point can never settle, so it becomes the core of a spiral wave that winds outward. Height shows the colour, so the spiral becomes a spiral staircase.' },
+  { id: 'cyc-r3', g: 'cyc', name: 'Range-3 spirals · threshold 5', speed: 30, cmap: 'hue', c: { K: 8, T: 5, R: 3, nbh: 'M', N: 128, init: 'random' },
+    note: '<b>Larger neighbourhood, higher threshold.</b> Each cell looks 3 cells in every direction and needs 5 neighbours ahead of it. Small random fluctuations die out, and only large, smooth spirals survive.' },
+  { id: 'cyc-gh', g: 'cyc', name: 'Excitable medium · Greenberg–Hastings', speed: 20, cmap: 'hue', c: { K: 8, T: 1, R: 1, nbh: 'M', gh: true, N: 128, init: 'patch', size: 20 },
+    note: '<b>Greenberg–Hastings (1978).</b> Colour 0 is resting, 1 is excited and 2–7 are refractory. A resting cell fires when a neighbour is excited; after firing it must recover through every refractory colour before it can fire again. A small disturbed patch in a quiet medium becomes a pacemaker that sends out wave after wave, the simplest model of waves in heart muscle and nerve tissue.' },
+  { id: 'cyc-helix', g: 'cyc', name: 'Spirals through time · screw surfaces', speed: 20, cmap: 'hue', c: { K: 12, T: 1, R: 1, nbh: 'M', N: 72, H: 72, init: 'twin', view: 'stack', colorBy: 'state' },
+    note: '<b>Two spirals stacked in time.</b> Only the first third of the colour wheel is drawn, so each spiral arm is a thin band. As the arm rotates, the stacked layers sweep out a screw-shaped surface (a helicoid), one full turn every 12 generations. The two cores turn in opposite directions.' },
+
+  { id: 'orbium', g: 'cont', name: 'Lenia · Orbium, a glider', speed: 30, cmap: 'viridis', c: { fam: 'lenia', R: 13, mu: 0.15, sigma: 0.015, dt: 0.1, beta: [1], N: 64, init: 'orbium', colorBy: 'value' },
+    note: '<b>Orbium unicaudatus</b> (Bert Chan, Lenia). Every cell holds a real value between 0 and 1 and responds to a smooth ring of neighbours 13 cells wide. Orbium keeps its shape while gliding, because it grows at the front and decays at the back. Colour by growth to see it.' },
+  { id: 'orbium-stack', g: 'cont', name: 'Orbium through time', speed: 30, cmap: 'viridis', c: { fam: 'lenia', R: 13, mu: 0.15, sigma: 0.015, dt: 0.1, beta: [1], N: 64, H: 100, init: 'orbium', view: 'stack', iso: 0.3, colorBy: 'time' },
+    note: '<b>A creature\'s trajectory.</b> Each layer is one time step and only cells above 0.3 are drawn, so Orbium\'s glide becomes a slanted tube, exactly like a glider in Conway\'s Life, but smooth.' },
+  { id: 'lenia-soup', g: 'cont', name: 'Lenia · a creature emerges from blobs', speed: 30, cmap: 'viridis', c: { fam: 'lenia', R: 13, mu: 0.15, sigma: 0.015, dt: 0.1, beta: [1], N: 96, init: 'blobs', density: 0.6, colorBy: 'value' },
+    note: '<b>Same rule, random start.</b> Six random blobs. Most dissolve, but one organises itself into an Orbium, with the same mass of about 71 and the same glide, without ever being given its shape. Other seeds die out or fill the grid with worm-like growth: try a few.' },
+  { id: 'gs-mitosis', g: 'cont', name: 'Gray–Scott · dividing spots', speed: 30, cmap: 'magma', c: { fam: 'gs', F: 0.0367, k: 0.0649, sub: 12, N: 128, init: 'seed', colorBy: 'value' },
+    note: '<b>Reaction–diffusion.</b> Chemical <i>v</i> grows by consuming <i>u</i>, which is fed in everywhere at rate F; <i>v</i> is removed at rate F + k. With these rates each spot grows, splits in two and pushes its neighbours away, like dividing cells.' },
+  { id: 'gs-coral', g: 'cont', name: 'Gray–Scott · coral', speed: 30, cmap: 'magma', c: { fam: 'gs', F: 0.0545, k: 0.062, sub: 12, N: 128, init: 'seed', colorBy: 'value' },
+    note: '<b>A slightly higher feed rate</b> turns the spots into branching, coral-like fingers that fill the space and never quite settle.' },
+  { id: 'gs-maze', g: 'cont', name: 'Gray–Scott · maze stripes', speed: 30, cmap: 'magma', c: { fam: 'gs', F: 0.029, k: 0.057, sub: 12, N: 128, init: 'scatter', density: 0.5, colorBy: 'value' },
+    note: '<b>Turing stripes.</b> At these rates the chemicals settle into a labyrinth of stripes, the same kind of pattern Turing proposed for animal coats and fingerprints.' },
 ];
 const CASE_BY_ID = Object.fromEntries(CASES.map((c) => [c.id, c]));
 const EXPERIMENTS = [
@@ -604,30 +706,39 @@ const EXPERIMENTS = [
   ['life-gun', 'Measure a speed', 'Rotate to the Side view. Each glider tube rises 4 layers for every cell it moves sideways: speed c/4.'],
   ['crystal', 'Growth rings', 'Colour by age shows when each cell was born. Switch the neighbourhood to Moore and watch the octahedron become a cube.'],
   ['life-soup', 'Edges matter', 'Run the soup with wrapped edges, then switch Space → Edges to Fixed and restart. Count the gliders that escape.'],
-  ['r184', 'Traffic jams', 'Set the density to 0.3, then 0.6, and restart. At what density do jams stop dissolving?'],
+  ['life-pulsar', 'Synchrony matters', 'Set the update probability p to 0.9 in the Rule panel. The pulsar, which needs every cell to change together, soon falls apart.'],
+  ['r150rev', 'Run time backwards', 'Play for a while, press ⇄ Reverse, and play again. The rule retraces its history exactly back to the single starting cell.'],
+  ['cyc-demons', 'From noise to spirals', 'Watch the debris phase give way to spirals. How many generations until one family of spirals has taken over the grid?'],
+  ['cyc-gh', 'Plant a wave', 'In Fig. 4 choose the Spiral core brush and click on a quiet area: a single defect starts a rotating wave.'],
+  ['orbium', 'An artificial creature', 'Colour by growth: Orbium grows at the front and shrinks at the back. Then change μ from 0.15 to 0.16. Does it survive?'],
+  ['gs-mitosis', 'Cells that divide', 'Click the F–k map in Fig. 3 to move to a different point. Small changes in F and k switch between spots, stripes and chaos.'],
   ['brain', 'Refractory waves', 'Switch Show dying cells off. The sparks keep moving because a refractory cell can\'t fire again straight away.'],
 ];
 
 /* =====================================================================
    State
    ===================================================================== */
-const G = { mode: '3d', seed: 1, cmap: 'spectrum', cell: 0.88, outlines: true, box: true, floor: true, spin: false, speed: 12, theme: 'auto', caseId: 'symmetry', showSlice: false };
+const G = { mode: '3d', seed: 1, cmap: 'spectrum', cell: 0.88, outlines: true, box: true, floor: true, spin: false, speed: 12, theme: 'auto', caseId: 'symmetry', showSlice: false, brush: '' };
 const M = clone(DEF);
-const visited = { '3d': false, '2d': false, '1d': false };
-const caseOf = { '3d': '', '2d': '', '1d': '' }; // the case each mode was last loaded from, for Reset
-const custom = { '3d': null, '2d': null, '1d': null };
+const visited = Object.fromEntries(MODES.map((m) => [m, false]));
+const caseOf = Object.fromEntries(MODES.map((m) => [m, ''])); // the case each mode was last loaded from, for Reset
+const custom = Object.fromEntries(MODES.map((m) => [m, null]));
 const cfg = () => M[G.mode];
-const maxNb = () => (G.mode === '3d' ? (cfg().nbh === 'VN' ? 6 : 26) : (cfg().nbh === 'VN' ? 4 : 8));
+const isField = (m = G.mode) => m === 'cyc' || m === 'cont';
+const isLife = (m = G.mode) => m === '3d' || m === '2d';
+const nbCount = (R, nbh) => (nbh === 'VN' ? 2 * R * (R + 1) : (2 * R + 1) ** 2 - 1);
+const maxNb = () => { const c = cfg(); return G.mode === '3d' ? (c.nbh === 'VN' ? 6 : 26) : G.mode === '2d' ? (c.nbh === 'VN' ? 4 : 8) : G.mode === 'cyc' ? nbCount(c.R, c.nbh) : 0; };
 
-const sim = { gen: 0, alive: 0, occ: 0, births: 0, deaths: 0, ms: 0, hA: [], hB: [], hD: [], h0: 0, hashes: new Map(), period: 0, beh: null };
-let vol = null, stk = null, row = null; // 3-D volume / 2-D stack / 1-D rows
+const sim = { gen: 0, alive: 0, occ: 0, births: 0, deaths: 0, ms: 0, hA: [], hB: [], hD: [], h0: 0, hashes: new Map(), period: 0, beh: null, reversed: false };
+let vol = null, stk = null, row = null, fs = null; // 3-D volume / 2-D stack / 1-D rows / 2-D field (cyclic, continuous)
 const lut = { B: new Uint8Array(27), S: new Uint8Array(27) };
-let OFF = new Int8Array(0), WL = new Int32Array(0);
+let OFF = new Int8Array(0), WL = new Int32Array(0), WLF = new Int32Array(0), WLR = 1;
+let urng = Math.random; // seeded generator used by stochastic updating
 let playing = false;
-let pickInfo = null; // { code, x, y } for the tooltip
+let pickInfo = null;
 
 /* =====================================================================
-   Rules: parsing and formatting
+   Rules: parsing, formatting, Langton's λ
    ===================================================================== */
 function fmtList(a, compact) {
   if (compact) return a.join('');
@@ -635,12 +746,15 @@ function fmtList(a, compact) {
   return out.join(',');
 }
 function ruleString(c = cfg(), mode = G.mode) {
-  if (mode === '1d') return 'Rule ' + c.rule;
+  const pp = c.p !== undefined && c.p < 1 ? ` · p ${c.p}` : '';
+  if (mode === '1d') return 'Rule ' + c.rule + (c.rev ? 'R (reversible)' : '');
+  if (mode === 'cyc') return `R${c.R}/T${c.T}/C${c.K}/${c.nbh === 'VN' ? 'VN' : 'M'}${c.gh ? '/GH' : ''}${pp}`;
+  if (mode === 'cont') return c.fam === 'gs' ? `Gray–Scott · F ${c.F} · k ${c.k}` : `Lenia · R ${c.R} · μ ${c.mu} · σ ${c.sigma} · dt ${c.dt}${c.beta.length > 1 ? ' · β ' + c.beta.join(',') : ''}`;
   const d3 = mode === '3d';
   let s = `B${fmtList(c.B, !d3)}/S${fmtList(c.S, !d3)}`;
   if (c.C > 2) s += `/C${c.C}`;
   if (d3) s += c.nbh === 'VN' ? '/VN' : '/M'; else if (c.nbh === 'VN') s += '/VN';
-  return s;
+  return s + pp;
 }
 function parseList(tok, digitMode) {
   if (tok === '') return [];
@@ -682,9 +796,18 @@ function parseRule(str, mode) {
   if (bad.length) return { err: `With this neighbourhood a cell has at most ${mx} neighbours (found ${bad[0]}).` };
   return { rule: r };
 }
+// Langton's λ: the fraction of neighbourhood patterns (centre + neighbours, live/dead) that give a live cell next.
+function lambdaOf() {
+  const c = cfg();
+  if (G.mode === '1d') return popcount(c.rule) / 8;
+  if (!isLife()) return null;
+  const n = maxNb(); let num = 0;
+  c.B.forEach((k) => { num += binom(n, k); }); c.S.forEach((k) => { num += binom(n, k); });
+  return num / 2 ** (n + 1);
+}
 
 /* =====================================================================
-   Simulation
+   Simulation: life-like rules (3-D volume, 2-D stack) and 1-D rows
    ===================================================================== */
 function offsets(dim, nbh) {
   const o = [];
@@ -692,14 +815,26 @@ function offsets(dim, nbh) {
   else { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dx && !dy) continue; if (nbh === 'VN' && Math.abs(dx) + Math.abs(dy) !== 1) continue; o.push(dx, dy); } }
   return Int8Array.from(o);
 }
-function wrapLUT(N, wrap) { const w = new Int32Array(N + 2); for (let i = -1; i <= N; i++) w[i + 1] = i >= 0 && i < N ? i : wrap ? (i + N) % N : -1; return w; }
+function offsetsR(R, nbh) {
+  const o = [];
+  for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) { if (!dx && !dy) continue; if (nbh === 'VN' && Math.abs(dx) + Math.abs(dy) > R) continue; o.push(dx, dy); }
+  return Int8Array.from(o);
+}
+// Index lookup that applies the boundary: w[i + R] for i in -R .. N+R-1 is the wrapped index, or -1 outside a fixed border.
+function wrapLUT(N, wrap, R = 1) { const w = new Int32Array(N + 2 * R); for (let i = -R; i < N + R; i++) w[i + R] = i >= 0 && i < N ? i : wrap ? ((i % N) + N) % N : -1; return w; }
 function rebuildRule() {
   const c = cfg();
-  if (G.mode === '1d') return;
-  lut.B.fill(0); lut.S.fill(0);
-  c.B.forEach((n) => { lut.B[n] = 1; }); c.S.forEach((n) => { lut.S[n] = 1; });
-  OFF = offsets(G.mode === '3d' ? 3 : 2, c.nbh);
-  WL = wrapLUT(c.N, c.wrap);
+  if (isLife()) {
+    lut.B.fill(0); lut.S.fill(0);
+    c.B.forEach((n) => { lut.B[n] = 1; }); c.S.forEach((n) => { lut.S[n] = 1; });
+    OFF = offsets(G.mode === '3d' ? 3 : 2, c.nbh);
+    WL = wrapLUT(c.N, c.wrap);
+  } else if (G.mode === 'cyc') {
+    OFF = offsetsR(c.R, c.nbh); WLR = c.R; WLF = wrapLUT(c.N, c.wrap, c.R);
+  } else if (G.mode === 'cont') {
+    if (c.fam === 'lenia') { if (fs) fs.kern = buildKernel(c.R, c.beta); WLR = c.R; WLF = wrapLUT(c.N, c.wrap, c.R); }
+    else { WLR = 1; WLF = wrapLUT(c.N, c.wrap, 1); }
+  }
 }
 function count3(s, nb, N) {
   nb.fill(0);
@@ -727,13 +862,14 @@ function count2(s, nb, N) {
     }
   }
 }
-// One Generations-rule update: state 0 empty, 1 alive, 2..C-1 dying. Writes dst/dstAge, returns counts.
-function lifeUpdate(s, nb, age, d, da, n, C) {
+// One Generations-rule update: state 0 empty, 1 alive, 2..C-1 dying. With p < 1 each cell updates only with probability p.
+function lifeUpdate(s, nb, age, d, da, n, C, p) {
   const Bt = lut.B, St = lut.S;
   let alive = 0, births = 0, deaths = 0, occ = 0;
   for (let i = 0; i < n; i++) {
     const st = s[i]; let ns;
-    if (st === 0) ns = Bt[nb[i]] ? 1 : 0;
+    if (p < 1 && urng() >= p) ns = st;
+    else if (st === 0) ns = Bt[nb[i]] ? 1 : 0;
     else if (st === 1) ns = St[nb[i]] ? 1 : C > 2 ? 2 : 0;
     else ns = st + 1 >= C ? 0 : st + 1;
     d[i] = ns;
@@ -744,14 +880,12 @@ function lifeUpdate(s, nb, age, d, da, n, C) {
 }
 function countState(s) { let a = 0, o = 0; for (let i = 0; i < s.length; i++) { if (s[i]) { o++; if (s[i] === 1) a++; } } sim.alive = a; sim.occ = o; }
 
-// ---- 3-D volume
 function step3() {
   const c = cfg(), v = vol;
-  lifeUpdate(v.s, v.nb, v.age, v.t, v.ta, v.n, c.C);
+  lifeUpdate(v.s, v.nb, v.age, v.t, v.ta, v.n, c.C, c.p);
   [v.s, v.t] = [v.t, v.s]; [v.age, v.ta] = [v.ta, v.age];
   count3(v.s, v.nb, v.N);
 }
-// ---- 2-D stack
 const newLayer = (N) => ({ s: new Uint8Array(N * N), nb: new Uint8Array(N * N), age: new Uint16Array(N * N), gen: 0 });
 const layerAt = (j) => stk.layers[(stk.start + j) % stk.H];
 function pushLayer() {
@@ -762,11 +896,10 @@ function pushLayer() {
 }
 function step2() {
   const c = cfg(), src = layerAt(stk.len - 1), dst = pushLayer();
-  lifeUpdate(src.s, src.nb, src.age, dst.s, dst.age, stk.N * stk.N, c.C);
+  lifeUpdate(src.s, src.nb, src.age, dst.s, dst.age, stk.N * stk.N, c.C, c.p);
   dst.gen = src.gen + 1;
   count2(dst.s, dst.nb, stk.N);
 }
-// ---- 1-D rows
 const newRow = (N) => ({ s: new Uint8Array(N), p: new Uint8Array(N), age: new Uint16Array(N), gen: 0 });
 const rowAt = (j) => row.rows[(row.start + j) % row.H];
 function pushRow() {
@@ -776,55 +909,199 @@ function pushRow() {
   return dst;
 }
 function step1() {
-  const c = cfg(), N = row.N, src = rowAt(row.len - 1), dst = pushRow(), s = src.s, rule = c.rule, wrap = c.wrap;
+  const c = cfg(), N = row.N, src = rowAt(row.len - 1);
+  const prev = c.rev ? (row.len >= 2 ? rowAt(row.len - 2).s.slice() : row.before) : null; // copied before the ring may reuse it
+  const dst = pushRow(), s = src.s, rule = c.rule, wrap = c.wrap;
   let alive = 0, births = 0, deaths = 0;
   for (let x = 0; x < N; x++) {
     const l = x > 0 ? s[x - 1] : wrap ? s[N - 1] : 0, r = x < N - 1 ? s[x + 1] : wrap ? s[0] : 0;
-    const p = (l << 2) | (s[x] << 1) | r, v = (rule >> p) & 1;
+    const p = (l << 2) | (s[x] << 1) | r;
+    let v = (rule >> p) & 1;
+    if (prev) v ^= prev[x]; // second-order: new = rule(current) XOR previous
     dst.s[x] = v; dst.p[x] = p; dst.age[x] = v ? (s[x] ? Math.min(65535, src.age[x] + 1) : 1) : 0;
     if (v) { alive++; if (!s[x]) births++; } else if (s[x]) deaths++;
   }
   dst.gen = src.gen + 1;
+  row.before = src.s.slice();
   sim.alive = alive; sim.occ = alive; sim.births = births; sim.deaths = deaths;
 }
-function currentState() { return G.mode === '3d' ? vol.s : G.mode === '2d' ? layerAt(stk.len - 1).s : rowAt(row.len - 1).s; }
-function hashArr(a) { let h = 0x811c9dc5; for (let i = 0; i < a.length; i++) { h ^= a[i]; h = Math.imul(h, 16777619); } return h >>> 0; }
+// Reversible rules only: push a copy of the second-newest row, so the next steps retrace history.
+function reverseTime() {
+  const c = cfg();
+  if (G.mode !== '1d' || !c.rev || row.len < 2) return;
+  const a = rowAt(row.len - 2), b = rowAt(row.len - 1);
+  const bs = b.s.slice(), dst = pushRow();
+  dst.s.set(a.s); dst.p.set(a.p); dst.age.set(a.age); dst.gen = b.gen + 1;
+  row.before = bs;
+  sim.reversed = !sim.reversed; sim.gen++;
+  countState(dst.s); sim.births = 0; sim.deaths = 0;
+  record(); instDirty = true; uiDirty = true; sliceDirty = true;
+  toast(sim.reversed ? 'Time reversed: play to unwind the history.' : 'Running forwards again.');
+}
 
+/* =====================================================================
+   Simulation: cyclic automata
+   ===================================================================== */
+function stepCyc() {
+  const c = cfg(), f = fs, N = f.N, K = c.K, T = c.T, R = WLR, s = f.s, t = f.t, adv = f.adv, O = OFF, L = O.length, wl = WLF, p = c.p, gh = c.gh;
+  let n = 0;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const i = x + y * N, st = s[i], nx = st + 1 === K ? 0 : st + 1;
+    let go;
+    if (gh && st !== 0) go = true; // excited and refractory cells always move on
+    else {
+      let cnt = 0;
+      for (let k = 0; k < L; k += 2) { const xx = wl[x + O[k] + R], yy = wl[y + O[k + 1] + R]; if ((xx | yy) < 0) continue; if (s[xx + yy * N] === nx && ++cnt >= T) break; }
+      go = cnt >= T;
+    }
+    if (go && (p >= 1 || urng() < p)) { t[i] = nx; adv[i] = 1; n++; } else { t[i] = st; adv[i] = 0; }
+  }
+  f.s = t; f.t = s;
+  sim.alive = n; sim.births = n; sim.deaths = 0; sim.occ = N * N;
+}
+function cycCount(i) { // neighbours of cell i already in its next colour
+  const c = cfg(), N = fs.N, x = i % N, y = (i / N) | 0, nx = (fs.s[i] + 1) % c.K, R = WLR; let cnt = 0;
+  for (let k = 0; k < OFF.length; k += 2) { const xx = WLF[x + OFF[k] + R], yy = WLF[y + OFF[k + 1] + R]; if ((xx | yy) < 0) continue; if (fs.s[xx + yy * N] === nx) cnt++; }
+  return cnt;
+}
+
+/* =====================================================================
+   Simulation: continuous automata (Lenia, Gray–Scott)
+   ===================================================================== */
+const kernelCore = (r) => (r > 0 && r < 1 ? Math.exp(4 - 1 / (r * (1 - r))) : 0);
+function kernelProfile(d, beta) { const B = beta.length, br = d * B, k = Math.min(B - 1, Math.floor(br)); return d <= 0 || d >= 1 ? 0 : beta[k] * kernelCore(br - k); }
+function buildKernel(R, beta) {
+  const dx = [], dy = [], w = []; let sum = 0;
+  for (let y = -R; y <= R; y++) for (let x = -R; x <= R; x++) { const v = kernelProfile(Math.sqrt(x * x + y * y) / R, beta); if (v < 1e-4) continue; dx.push(x); dy.push(y); w.push(v); sum += v; }
+  return { dx: Int8Array.from(dx), dy: Int8Array.from(dy), w: Float32Array.from(w.map((v) => v / sum)) };
+}
+const growth = (u, mu, sigma) => 2 * Math.exp(-((u - mu) ** 2) / (2 * sigma * sigma)) - 1;
+function stepLenia() {
+  const c = cfg(), f = fs, N = f.N, A = f.a, A2 = f.a2, U = f.U, Gr = f.G, K = f.kern, KX = K.dx, KY = K.dy, KW = K.w, L = KW.length, R = WLR, wl = WLF;
+  const mu = c.mu, s2 = 2 * c.sigma * c.sigma, dt = c.dt;
+  U.fill(0);
+  // the kernel is symmetric, so scattering each live cell's value equals the usual convolution, and empty cells cost nothing
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const a = A[x + y * N]; if (a === 0) continue;
+    for (let k = 0; k < L; k++) { const xx = wl[x + KX[k] + R], yy = wl[y + KY[k] + R]; if ((xx | yy) < 0) continue; U[xx + yy * N] += a * KW[k]; }
+  }
+  let mass = 0, act = 0, occ = 0;
+  for (let i = 0; i < N * N; i++) {
+    const d = U[i] - mu, g = 2 * Math.exp(-d * d / s2) - 1;
+    Gr[i] = g;
+    let a = A[i] + dt * g; a = a < 0 ? 0 : a > 1 ? 1 : a;
+    A2[i] = a; mass += a; act += Math.abs(a - A[i]); if (a > 0.1) occ++;
+  }
+  f.a = A2; f.a2 = A; f.val = A2;
+  sim.alive = mass; sim.births = act; sim.deaths = 0; sim.occ = occ;
+}
+function leniaPotential(i) {
+  const N = fs.N, x = i % N, y = (i / N) | 0, K = fs.kern, R = WLR; let u = 0;
+  for (let k = 0; k < K.w.length; k++) { const xx = WLF[x + K.dx[k] + R], yy = WLF[y + K.dy[k] + R]; if ((xx | yy) < 0) continue; u += K.w[k] * fs.a[xx + yy * N]; }
+  return u;
+}
+function stepGS() {
+  const c = cfg(), f = fs, N = f.N, F = c.F, kk = c.k, Da = 1, Db = 0.5, XM = f.xm, XP = f.xp;
+  let u = f.u, v = f.v, u2 = f.u2, v2 = f.v2;
+  f.v0.set(v);
+  for (let it = 0; it < c.sub; it++) {
+    for (let y = 0; y < N; y++) {
+      const ym = XM[y] * N, yp = XP[y] * N, y0 = y * N;
+      for (let x = 0; x < N; x++) {
+        const xm = XM[x], xp = XP[x], i = y0 + x, a = u[i], b = v[i];
+        const la = -a + 0.2 * (u[y0 + xm] + u[y0 + xp] + u[ym + x] + u[yp + x]) + 0.05 * (u[ym + xm] + u[ym + xp] + u[yp + xm] + u[yp + xp]);
+        const lb = -b + 0.2 * (v[y0 + xm] + v[y0 + xp] + v[ym + x] + v[yp + x]) + 0.05 * (v[ym + xm] + v[ym + xp] + v[yp + xm] + v[yp + xp]);
+        const abb = a * b * b;
+        let na = a + Da * la - abb + F * (1 - a), nb = b + Db * lb + abb - (kk + F) * b;
+        u2[i] = na < 0 ? 0 : na > 1 ? 1 : na; v2[i] = nb < 0 ? 0 : nb > 1 ? 1 : nb;
+      }
+    }
+    [u, u2] = [u2, u]; [v, v2] = [v2, v];
+  }
+  f.u = u; f.v = v; f.u2 = u2; f.v2 = v2; f.val = v;
+  let mass = 0, act = 0, occ = 0;
+  for (let i = 0; i < N * N; i++) { const d = v[i] - f.v0[i]; f.G[i] = d; mass += v[i]; act += Math.abs(d); if (v[i] > 0.1) occ++; }
+  sim.alive = mass; sim.births = act; sim.deaths = 0; sim.occ = occ;
+}
+// Field snapshots: one byte per cell per generation, for the time stack, hashing and Fig. 4.
+const fLayerAt = (j) => fs.layers[(fs.lstart + j) % fs.H];
+const vScale = () => (G.mode === 'cont' && cfg().fam === 'gs' ? 2.2 : 1); // Gray–Scott v rarely exceeds 0.45, so stretch it for display
+function writeSnap(dst) {
+  if (G.mode === 'cyc') dst.set(fs.s);
+  else { const v = fs.val, k = vScale() * 255; for (let i = 0; i < v.length; i++) { const q = v[i] * k + 0.5; dst[i] = q > 255 ? 255 : q; } }
+}
+function pushSnap() {
+  let ix;
+  if (fs.llen < fs.H) { ix = (fs.lstart + fs.llen) % fs.H; if (!fs.layers[ix]) fs.layers[ix] = new Uint8Array(fs.N * fs.N); fs.llen++; }
+  else { ix = fs.lstart; fs.lstart = (fs.lstart + 1) % fs.H; }
+  writeSnap(fs.layers[ix]); fs.lg[ix] = sim.gen;
+}
+
+/* ---- shared bookkeeping */
+function currentState() {
+  if (G.mode === '3d') return vol.s;
+  if (G.mode === '2d') return layerAt(stk.len - 1).s;
+  if (G.mode === '1d') return rowAt(row.len - 1).s;
+  return fLayerAt(fs.llen - 1);
+}
+function hashArr(a) { let h = 0x811c9dc5; for (let i = 0; i < a.length; i++) { h ^= a[i]; h = Math.imul(h, 16777619); } return h >>> 0; }
 function record() {
   sim.hA.push(sim.alive); sim.hB.push(sim.births); sim.hD.push(sim.deaths);
   if (sim.hA.length > 600) { sim.hA.shift(); sim.hB.shift(); sim.hD.shift(); sim.h0++; }
-  const key = hashArr(currentState()) + ':' + sim.occ;
+  const key = hashArr(currentState()) + ':' + (G.mode === 'cont' ? 0 : sim.occ);
   const prev = sim.hashes.get(key);
   if (prev !== undefined && !sim.period) sim.period = sim.gen - prev;
   sim.hashes.set(key, sim.gen);
   if (sim.hashes.size > 500) sim.hashes.delete(sim.hashes.keys().next().value);
   sim.beh = classify();
 }
+function trend() {
+  const A = sim.hA, n = A.length; if (n < 24) return 0;
+  const w = Math.min(30, n >> 1); let a = 0, b = 0; for (let i = 0; i < w; i++) { a += A[n - 1 - i]; b += A[n - 1 - w - i]; }
+  return a > b * 1.06 + 2 ? 1 : a < b * 0.94 - 2 ? -1 : 0;
+}
 function classify() {
+  const m = G.mode;
+  if (m === 'cyc') {
+    if (sim.gen > 0 && sim.alive === 0) return { k: 'ok', t: 'Frozen', s: 'no cell has enough neighbours ahead of it' };
+    if (sim.period > 0) return { k: 'info', t: 'Periodic · ' + sim.period, s: `the whole grid repeats every ${sim.period} generations` };
+    return { k: 'info', t: 'Waves', s: sim.gen < 24 ? 'too early to tell' : 'colours still competing, no repeat yet' };
+  }
+  if (m === 'cont') {
+    if (sim.alive < 0.5) return { k: 'bad', t: 'Extinct', s: 'every value has fallen to zero' };
+    if (sim.gen > 2 && sim.births < 1e-3 * Math.max(1, sim.alive)) return { k: 'ok', t: 'Settled', s: 'almost nothing is changing' };
+    if (sim.period > 0) return { k: 'info', t: 'Periodic · ' + sim.period, s: `repeats every ${sim.period} generations` };
+    const tr = trend();
+    if (tr > 0) return { k: 'warn', t: 'Growing', s: 'total mass is rising' };
+    if (tr < 0) return { k: 'warn', t: 'Shrinking', s: 'total mass is falling' };
+    return { k: 'info', t: 'Changing', s: sim.gen < 24 ? 'too early to tell' : 'steady mass, still moving or reshaping' };
+  }
   if (sim.occ === 0) return { k: 'bad', t: 'Extinct', s: 'every cell is empty' };
   if (sim.period === 1) return { k: 'ok', t: 'Fixed', s: 'a still life: nothing changes' };
   if (sim.period > 1) return { k: 'info', t: 'Periodic · ' + sim.period, s: `the whole state repeats every ${sim.period} generations` };
-  const A = sim.hA, n = A.length;
-  if (n < 24) return { k: 'info', t: 'Changing', s: 'too early to tell' };
-  const w = Math.min(30, n >> 1);
-  let a = 0, b = 0; for (let i = 0; i < w; i++) { a += A[n - 1 - i]; b += A[n - 1 - w - i]; }
-  if (a > b * 1.06 + 2) return { k: 'warn', t: 'Growing', s: 'the population is still rising' };
-  if (a < b * 0.94 - 2) return { k: 'warn', t: 'Shrinking', s: 'the population is falling' };
+  if (sim.hA.length < 24) return { k: 'info', t: 'Changing', s: 'too early to tell' };
+  const tr = trend();
+  if (tr > 0) return { k: 'warn', t: 'Growing', s: 'the population is still rising' };
+  if (tr < 0) return { k: 'warn', t: 'Shrinking', s: 'the population is falling' };
   return { k: 'info', t: 'Aperiodic', s: 'steady population, no repeat yet' };
 }
 function stepSim() {
-  const t0 = performance.now();
-  if (G.mode === '3d') step3(); else if (G.mode === '2d') step2(); else step1();
+  const t0 = performance.now(), m = G.mode;
+  if (m === '3d') step3(); else if (m === '2d') step2(); else if (m === '1d') step1();
+  else if (m === 'cyc') stepCyc(); else if (cfg().fam === 'gs') stepGS(); else stepLenia();
   sim.gen++;
+  if (isField()) pushSnap();
   sim.ms = sim.ms ? sim.ms * 0.85 + (performance.now() - t0) * 0.15 : performance.now() - t0;
   record();
-  if (G.mode !== '1d' && sim.occ === 0 && playing) setPlaying(false);
-  if (G.mode === '3d' && sim.period === 1 && playing) setPlaying(false);
-  if (G.mode === '3d' && pickInfo) refreshTip(); else if (pickInfo) clearPick();
+  if (isLife() && sim.occ === 0 && playing) setPlaying(false);
+  if (m === '3d' && sim.period === 1 && playing) setPlaying(false);
+  if (m === 'cyc' && sim.alive === 0 && playing) setPlaying(false);
+  if (m === 'cont' && sim.alive < 0.5 && playing) setPlaying(false);
+  if (pickInfo) { if (m === '3d' || (isField() && pickInfo.layer < 0)) refreshTip(); else clearPick(); }
   instDirty = true; uiDirty = true; sliceDirty = true;
 }
 
-// ---- initial states
+/* ---- initial states */
 function stamp(s, N, pat, ox, oy) { pat.forEach((r, y) => { for (let x = 0; x < r.length; x++) if (r[x] === 'O') { const X = ox + x, Y = oy + y; if (X >= 0 && X < N && Y >= 0 && Y < N) s[X + Y * N] = 1; } }); }
 function init3(c, rng) {
   const N = c.N, s = vol.s, mid = N >> 1, NN = N * N, k = Math.min(N, c.size | 0), o = (N - k) >> 1, d = c.density;
@@ -834,6 +1111,7 @@ function init3(c, rng) {
   else if (c.init === 'cube') { for (let z = o; z < o + k; z++) for (let y = o; y < o + k; y++) for (let x = o; x < o + k; x++) if (rng() < d) s[id(x, y, z)] = 1; }
   else if (c.init === 'sphere') { const r = k / 2, cc = (N - 1) / 2; for (let z = 0; z < N; z++) for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const q = (x - cc) ** 2 + (y - cc) ** 2 + (z - cc) ** 2; if (q <= r * r && rng() < d) s[id(x, y, z)] = 1; } }
   else if (c.init === 'full') { for (let i = 0; i < s.length; i++) if (rng() < d) s[i] = 1; }
+  else if (c.init === 'states') { for (let i = 0; i < s.length; i++) if (rng() < d) s[i] = 1 + Math.floor(rng() * (c.C - 1)); }
   else if (c.init === 'cross') { const L = Math.max(1, k >> 1); for (let t = -L; t <= L; t++) { const a = clamp(mid + t, 0, N - 1); s[id(a, mid, mid)] = 1; s[id(mid, a, mid)] = 1; s[id(mid, mid, a)] = 1; } }
   else if (c.init === 'custom' && custom['3d'] && custom['3d'].N === N) s.set(custom['3d'].s);
 }
@@ -842,12 +1120,13 @@ function init2(c, rng, s) {
   s.fill(0);
   const P = PATTERNS[c.init];
   if (P) {
-    // mirrored so the glider stream runs across the default iso view instead of towards the camera
+    // the gun is mirrored so its glider stream runs across the default iso view instead of towards the camera
     if (c.init === 'gun') stamp(s, N, P.map((r) => [...r].reverse().join('')), N - 2 - P[0].length, 2);
     else stamp(s, N, P, mid - (P[0].length >> 1), mid - (P.length >> 1));
   } else if (c.init === 'single') s[mid + mid * N] = 1;
   else if (c.init === 'soup') { for (let y = o; y < o + k; y++) for (let x = o; x < o + k; x++) if (rng() < d) s[x + y * N] = 1; }
   else if (c.init === 'full') { for (let i = 0; i < s.length; i++) if (rng() < d) s[i] = 1; }
+  else if (c.init === 'states') { for (let i = 0; i < s.length; i++) if (rng() < d) s[i] = 1 + Math.floor(rng() * (c.C - 1)); }
   else if (c.init === 'line') { for (let x = o; x < o + k; x++) s[x + mid * N] = 1; }
   else if (c.init === 'custom' && custom['2d'] && custom['2d'].N === N) s.set(custom['2d'].s);
 }
@@ -858,41 +1137,106 @@ function init1(c, rng, s) {
   else if (c.init === 'random') { for (let i = 0; i < N; i++) if (rng() < c.density) s[i] = 1; }
   else if (c.init === 'custom' && custom['1d'] && custom['1d'].N === N) s.set(custom['1d'].s);
 }
+function spiralCore(s, N, K, cx, cy, radius, hand) {
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const dx = x - cx, dy = y - cy; if (radius && dx * dx + dy * dy > radius * radius) continue;
+    const a = (Math.atan2(dy, dx) * hand + Math.PI) / (2 * Math.PI);
+    s[x + y * N] = Math.floor(a * K) % K;
+  }
+}
+function initCyc(c, rng, s) {
+  const N = c.N, K = c.K; s.fill(0);
+  if (c.init === 'random') { for (let i = 0; i < s.length; i++) s[i] = Math.floor(rng() * K); }
+  else if (c.init === 'patch') { const k = Math.min(N, c.size | 0), o = (N - k) >> 1; for (let y = o; y < o + k; y++) for (let x = o; x < o + k; x++) s[x + y * N] = Math.floor(rng() * K); }
+  else if (c.init === 'spiral') spiralCore(s, N, K, (N - 1) / 2, (N - 1) / 2, 0, 1);
+  else if (c.init === 'twin') { // two opposite-handed cores: left half winds one way, right half the other
+    const t = new Uint8Array(N * N); spiralCore(s, N, K, N * 0.3, N / 2, 0, 1); spiralCore(t, N, K, N * 0.7, N / 2, 0, -1);
+    for (let y = 0; y < N; y++) for (let x = (N >> 1); x < N; x++) s[x + y * N] = t[x + y * N];
+  } else if (c.init === 'custom' && custom.cyc && custom.cyc.N === N) s.set(custom.cyc.s);
+}
+function initLenia(c, rng, a) {
+  const N = c.N; a.fill(0);
+  const put = (x, y, v) => { if (x >= 0 && x < N && y >= 0 && y < N) a[x + y * N] = v; };
+  if (c.init === 'orbium') {
+    const o = (N >> 1) - 10;
+    ORBIUM.forEach((r, y) => { for (let x = 0; x < 20; x++) put(o + x, o + y, parseInt(r.substr(x * 2, 2), 16) / 255); });
+  } else if (c.init === 'blobs') {
+    const n = Math.max(1, Math.round(c.density * 10)), w = Math.round(c.R * 1.6);
+    for (let b = 0; b < n; b++) { const cx = Math.floor(rng() * N), cy = Math.floor(rng() * N); for (let y = 0; y < w; y++) for (let x = 0; x < w; x++) { const dx = x - w / 2, dy = y - w / 2; if (dx * dx + dy * dy < (w / 2) ** 2) put((cx + x) % N, (cy + y) % N, rng()); } }
+  } else if (c.init === 'noise') { const k = Math.min(N, c.size | 0), o = (N - k) >> 1; for (let y = o; y < o + k; y++) for (let x = o; x < o + k; x++) if (rng() < c.density) put(x, y, rng()); }
+  else if (c.init === 'single') { const cc = (N - 1) / 2, r = c.R; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const q = ((x - cc) ** 2 + (y - cc) ** 2) / (r * r); if (q < 1) put(x, y, Math.exp(-q * 2)); } }
+  else if (c.init === 'custom' && custom.cont && custom.cont.N === N && custom.cont.fam === 'lenia') a.set(custom.cont.v);
+}
+function initGS(c, rng, u, v) {
+  const N = c.N; u.fill(1); v.fill(0);
+  const sq = (cx, cy, h) => { for (let y = cy - h; y <= cy + h; y++) for (let x = cx - h; x <= cx + h; x++) { const i = ((x % N) + N) % N + (((y % N) + N) % N) * N; u[i] = 0.5; v[i] = 0.25 + rng() * 0.5; } };
+  if (c.init === 'seed') sq(N >> 1, N >> 1, 5);
+  else if (c.init === 'scatter') { const n = Math.max(1, Math.round(c.density * 24)); for (let b = 0; b < n; b++) sq(Math.floor(rng() * N), Math.floor(rng() * N), 3); }
+  else if (c.init === 'noise') { const k = Math.min(N, c.size | 0), o = (N - k) >> 1; for (let y = o; y < o + k; y++) for (let x = o; x < o + k; x++) if (rng() < c.density * 0.5) { const i = x + y * N; u[i] = 0.5; v[i] = 0.25 + rng() * 0.5; } }
+  else if (c.init === 'custom' && custom.cont && custom.cont.N === N && custom.cont.fam === 'gs') { v.set(custom.cont.v); u.set(custom.cont.u); }
+}
 function resetSim() {
   const c = cfg(), rng = mulberry32(G.seed);
-  Object.assign(sim, { gen: 0, hA: [], hB: [], hD: [], h0: 0, period: 0, ms: 0, births: 0, deaths: 0 });
+  urng = mulberry32((G.seed ^ 0x9e3779b9) >>> 0);
+  Object.assign(sim, { gen: 0, hA: [], hB: [], hD: [], h0: 0, period: 0, ms: 0, births: 0, deaths: 0, reversed: false });
   sim.hashes = new Map();
   clearPick();
-  rebuildRule();
   if (G.mode === '3d') {
+    rebuildRule();
     const n = c.N ** 3;
     if (!vol || vol.N !== c.N) vol = { N: c.N, n, s: new Uint8Array(n), t: new Uint8Array(n), nb: new Uint8Array(n), age: new Uint16Array(n), ta: new Uint16Array(n) };
     init3(c, rng); vol.age.fill(0); for (let i = 0; i < n; i++) if (vol.s[i]) vol.age[i] = 1;
     count3(vol.s, vol.nb, vol.N); countState(vol.s);
+    sim.births = sim.alive;
   } else if (G.mode === '2d') {
+    rebuildRule();
     stk = { N: c.N, H: c.H, layers: new Array(c.H), start: 0, len: 1 };
     const L = (stk.layers[0] = newLayer(c.N));
     init2(c, rng, L.s); for (let i = 0; i < L.s.length; i++) L.age[i] = L.s[i] ? 1 : 0;
     count2(L.s, L.nb, c.N); countState(L.s);
-  } else {
-    row = { N: c.N, H: c.H, rows: new Array(c.H), start: 0, len: 1, first: null };
+    sim.births = sim.alive;
+  } else if (G.mode === '1d') {
+    row = { N: c.N, H: c.H, rows: new Array(c.H), start: 0, len: 1, first: null, before: new Uint8Array(c.N) };
     const R = (row.rows[0] = newRow(c.N));
     init1(c, rng, R.s); R.p.fill(255); for (let i = 0; i < c.N; i++) R.age[i] = R.s[i] ? 1 : 0;
     row.first = R.s.slice();
-    countState(R.s);
+    countState(R.s); sim.births = sim.alive;
+  } else {
+    const N = c.N, NN = N * N;
+    fs = { N, H: c.H, layers: new Array(c.H), lg: new Int32Array(c.H), lstart: 0, llen: 0, G: new Float32Array(NN) };
+    if (G.mode === 'cyc') {
+      fs.s = new Uint8Array(NN); fs.t = new Uint8Array(NN); fs.adv = new Uint8Array(NN);
+      rebuildRule(); initCyc(c, rng, fs.s);
+      sim.alive = 0; sim.births = 0; sim.occ = NN;
+    } else if (c.fam === 'lenia') {
+      fs.a = new Float32Array(NN); fs.a2 = new Float32Array(NN); fs.U = new Float32Array(NN);
+      rebuildRule(); initLenia(c, rng, fs.a); fs.val = fs.a;
+      let m = 0, o = 0; for (let i = 0; i < NN; i++) { m += fs.a[i]; if (fs.a[i] > 0.1) o++; } sim.alive = m; sim.occ = o; sim.births = 0;
+    } else {
+      fs.u = new Float32Array(NN); fs.v = new Float32Array(NN); fs.u2 = new Float32Array(NN); fs.v2 = new Float32Array(NN); fs.v0 = new Float32Array(NN);
+      fs.xm = new Int32Array(N); fs.xp = new Int32Array(N);
+      for (let i = 0; i < N; i++) { fs.xm[i] = i > 0 ? i - 1 : c.wrap ? N - 1 : 0; fs.xp[i] = i < N - 1 ? i + 1 : c.wrap ? 0 : N - 1; }
+      rebuildRule(); initGS(c, rng, fs.u, fs.v); fs.val = fs.v;
+      let m = 0, o = 0; for (let i = 0; i < NN; i++) { m += fs.v[i]; if (fs.v[i] > 0.1) o++; } sim.alive = m; sim.occ = o; sim.births = 0;
+    }
+    pushSnap();
   }
-  sim.births = sim.alive; sim.deaths = 0;
   record();
   if (G.mode === '1d') { for (let k = 1; k < c.H; k++) stepSim(); }
+  updateRevBtn();
   instDirty = true; uiDirty = true; sliceDirty = true;
 }
 // After an edit to the live state (drawing, rule change): recount neighbours and forget cycle history.
 function afterEdit() {
   if (G.mode === '3d') { count3(vol.s, vol.nb, vol.N); countState(vol.s); }
   else if (G.mode === '2d') { const L = layerAt(stk.len - 1); count2(L.s, L.nb, stk.N); countState(L.s); }
+  else if (isField()) {
+    writeSnap(fLayerAt(fs.llen - 1));
+    if (G.mode === 'cont') { const v = fs.val; let m = 0, o = 0; for (let i = 0; i < v.length; i++) { m += v[i]; if (v[i] > 0.1) o++; } sim.alive = m; sim.occ = o; }
+  }
   sim.hashes = new Map(); sim.period = 0;
   sim.beh = classify();
-  if (pickInfo && G.mode === '3d') refreshTip();
+  if (pickInfo && (G.mode === '3d' || isField())) refreshTip();
   instDirty = true; uiDirty = true; sliceDirty = true;
 }
 
@@ -937,6 +1281,7 @@ function initThree() {
   V.tex = new THREE.CanvasTexture(cv); V.tex.anisotropy = 4;
   V.geo = new THREE.BoxGeometry(1, 1, 1);
   V.mat = new THREE.MeshLambertMaterial({ color: 0xffffff, map: G.outlines ? V.tex : null });
+  V.surfMat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
   V.ray = new THREE.Raycaster();
   V.pickBox = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)), new THREE.LineBasicMaterial({ color: 0xffcf5c, depthTest: false, transparent: true }));
   V.pickBox.matrixAutoUpdate = false; V.pickBox.visible = false; V.pickBox.renderOrder = 10; V.scene.add(V.pickBox);
@@ -951,7 +1296,8 @@ function resize() {
   if (!w || !h) return;
   V.renderer.setSize(w, h, false); V.camera.aspect = w / h; V.camera.updateProjectionMatrix(); camDirty = true;
 }
-function potential() { const c = cfg(); return G.mode === '3d' ? c.N ** 3 : G.mode === '2d' ? c.N * c.N * c.H : c.N * c.H; }
+const fieldSurface = () => isField() && cfg().view !== 'stack';
+function potential() { const c = cfg(); return G.mode === '3d' ? c.N ** 3 : G.mode === '2d' ? c.N * c.N * c.H : G.mode === '1d' ? c.N * c.H : fieldSurface() ? 64 : c.N * c.N * c.H; }
 function ensureMesh() {
   const need = Math.max(64, Math.min(MAXI, potential()));
   if (V.mesh && V.cap >= need && V.cap <= need * 3) return;
@@ -964,10 +1310,12 @@ function ensureMesh() {
   V.mesh = mesh; V.cap = need; V.idx = new Int32Array(need);
   V.scene.add(mesh);
 }
+const surfHeight = () => cfg().N * 0.22 * cfg().hscale;
 function extents() {
   const c = cfg();
   if (G.mode === '3d') return [c.N / 2, c.N / 2, c.N / 2];
   if (G.mode === '2d') return [c.N / 2, (c.H * c.tscale) / 2, c.N / 2];
+  if (isField()) return fieldSurface() ? [c.N / 2, Math.max(1.5, surfHeight() / 2), c.N / 2] : [c.N / 2, (c.H * c.tscale) / 2, c.N / 2];
   if (c.layout === 'cylinder') { const R = c.N / (2 * Math.PI) + 0.5; return [R, (c.H * c.tscale) / 2, R]; }
   return [c.N / 2, (c.H * c.tscale) / 2, 0.5];
 }
@@ -997,11 +1345,52 @@ function buildHelpers() {
 }
 function placeSlicePlane() { if (V.sliceObj) { V.sliceObj.position.y = SL.y - cfg().N / 2 + 0.5; V.sliceObj.visible = G.showSlice && G.mode === '3d'; camDirty = true; } }
 
+// ---- the height-field surface used by Cyclic and Continuous modes
+function ensureSurface() {
+  const N = fs.N;
+  if (V.surf && V.surfN === N) return;
+  if (V.surf) { V.scene.remove(V.surf); V.surf.geometry.dispose(); }
+  const geo = new THREE.BufferGeometry(), pos = new Float32Array(N * N * 3), col = new Float32Array(N * N * 3);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const o = (x + y * N) * 3; pos[o] = x - N / 2 + 0.5; pos[o + 2] = y - N / 2 + 0.5; }
+  const idx = new Uint32Array((N - 1) * (N - 1) * 6); let k = 0;
+  for (let y = 0; y < N - 1; y++) for (let x = 0; x < N - 1; x++) { const a = x + y * N, b = a + 1, c = a + N, d = c + 1; idx[k++] = a; idx[k++] = c; idx[k++] = b; idx[k++] = b; idx[k++] = c; idx[k++] = d; }
+  geo.setIndex(new THREE.BufferAttribute(idx, 1));
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3).setUsage(THREE.DynamicDrawUsage));
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3).setUsage(THREE.DynamicDrawUsage));
+  V.surf = new THREE.Mesh(geo, V.surfMat); V.surf.frustumCulled = false; V.surfN = N; V.scene.add(V.surf);
+}
+function cellHeight(i) { // 0..1 for the surface
+  if (G.mode === 'cyc') return 0.5 - 0.5 * Math.cos((2 * Math.PI * fs.s[i]) / cfg().K); // a phase on the wheel: smooth all the way round, no cliff from κ−1 back to 0
+  const v = fs.val[i] * vScale(); return v > 1 ? 1 : v;
+}
+function updateSurface() {
+  ensureSurface();
+  const c = cfg(), N = fs.N, NN = N * N, geo = V.surf.geometry, pos = geo.attributes.position.array, col = geo.attributes.color.array;
+  const lutc = CMAPS[G.cmap].lut, P = TC.plainRGB, base = -extents()[1], Hs = surfHeight(), cyc = G.mode === 'cyc', K = c.K, cb = c.colorBy, gs = c.fam === 'gs';
+  for (let i = 0; i < NN; i++) {
+    const h = cellHeight(i), o = i * 3;
+    pos[o + 1] = base + h * Hs;
+    let t;
+    if (cb === 'plain') t = -1;
+    else if (cyc) t = fs.s[i] / K;
+    else if (cb === 'growth') t = gs ? 0.5 + fs.G[i] * 25 : (fs.G[i] + 1) / 2;
+    else t = h;
+    if (t < 0) { const sh = 0.55 + 0.45 * h; col[o] = P[0] * sh; col[o + 1] = P[1] * sh; col[o + 2] = P[2] * sh; }
+    else { const li = (((t < 0 ? 0 : t > 1 ? 1 : t) * 255) | 0) * 3; col[o] = lutc[li]; col[o + 1] = lutc[li + 1]; col[o + 2] = lutc[li + 2]; }
+  }
+  geo.attributes.position.needsUpdate = true; geo.attributes.color.needsUpdate = true;
+  geo.computeVertexNormals();
+  geo.boundingSphere = null; geo.boundingBox = null; // heights changed: let raycasting recompute the bounds
+}
+
 const ageT = (a) => Math.min(1, Math.log(1 + a) / 4.174); // log(65)
-const hasState = () => (G.mode === '3d' ? !!vol : G.mode === '2d' ? !!stk : !!row);
+const hasState = () => (G.mode === '3d' ? !!vol : G.mode === '2d' ? !!stk : G.mode === '1d' ? !!row : !!fs);
 function rebuildInstances() {
   if (!V.ok || !hasState()) return;
-  ensureMesh();
+  const surf = fieldSurface();
+  if (V.surf) V.surf.visible = surf;
+  if (surf) { updateSurface(); if (V.mesh) V.mesh.visible = false; V.count = 0; V.trunc = false; placePickBox(); camDirty = true; return; }
+  ensureMesh(); V.mesh.visible = true;
   const c = cfg(), cb = c.colorBy, lutc = CMAPS[G.cmap].lut, P = TC.plainRGB, cap = V.cap;
   const m = V.mesh.instanceMatrix.array, col = V.mesh.instanceColor.array, idx = V.idx, cs = G.cell;
   let n = 0;
@@ -1018,11 +1407,11 @@ function rebuildInstances() {
   if (G.mode === '3d') {
     const N = vol.N, NN = N * N, s = vol.s, nb = vol.nb, age = vol.age, h = N / 2, C = c.C, mx = maxNb(), rmax = N * 0.62, showD = c.showDying, cull = cs >= 0.8;
     const vis = showD ? (j) => s[j] !== 0 : (j) => s[j] === 1;
-    for (let z = 0; z < N; z++) for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    outer3: for (let z = 0; z < N; z++) for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
       const i = x + N * y + NN * z, st = s[i];
       if (!st || (st > 1 && !showD)) continue;
       if (cull && x > 0 && y > 0 && z > 0 && x < N - 1 && y < N - 1 && z < N - 1 && vis(i - 1) && vis(i + 1) && vis(i - N) && vis(i + N) && vis(i - NN) && vis(i + NN)) continue;
-      if (n >= cap) { V.trunc = true; break; }
+      if (n >= cap) { V.trunc = true; break outer3; }
       let t;
       switch (cb) {
         case 'state': t = st === 1 ? 1 : 1 - (st - 1) / (C - 1); break;
@@ -1036,15 +1425,15 @@ function rebuildInstances() {
     }
   } else if (G.mode === '2d') {
     const N = stk.N, NN = N * N, H = stk.H, h = N / 2, ts = c.tscale, C = c.C, mx = maxNb(), showD = c.showDying, cull = cs >= 0.8 && ts >= 0.8;
-    outer: for (let j = stk.len - 1; j >= 0; j--) {
+    const vis = showD ? (a, k) => a[k] !== 0 : (a, k) => a[k] === 1;
+    outer2: for (let j = stk.len - 1; j >= 0; j--) {
       const L = layerAt(j), s = L.s, y = (j - (H - 1) / 2) * ts, tt = H > 1 ? j / (H - 1) : 1;
       const up = j < stk.len - 1 ? layerAt(j + 1).s : null, dn = j > 0 ? layerAt(j - 1).s : null;
-      const vis = showD ? (a, k) => a[k] !== 0 : (a, k) => a[k] === 1;
       for (let gy = 0; gy < N; gy++) for (let gx = 0; gx < N; gx++) {
         const i = gx + gy * N, st = s[i];
         if (!st || (st > 1 && !showD)) continue;
         if (cull && up && dn && gx > 0 && gy > 0 && gx < N - 1 && gy < N - 1 && vis(s, i - 1) && vis(s, i + 1) && vis(s, i - N) && vis(s, i + N) && vis(up, i) && vis(dn, i)) continue;
-        if (n >= cap) { V.trunc = true; break outer; }
+        if (n >= cap) { V.trunc = true; break outer2; }
         let t;
         switch (cb) {
           case 'time': t = tt; break;
@@ -1056,7 +1445,7 @@ function rebuildInstances() {
         put(gx - h + 0.5, y, gy - h + 0.5, cs, cs * ts, cs, t, j * NN + i);
       }
     }
-  } else {
+  } else if (G.mode === '1d') {
     const N = row.N, H = row.H, ts = c.tscale, cyl = c.layout === 'cylinder', R = N / (2 * Math.PI);
     outer1: for (let j = row.len - 1; j >= 0; j--) {
       const Rw = rowAt(j), y = ((H - 1) / 2 - j) * ts, tt = H > 1 ? j / (H - 1) : 1;
@@ -1076,6 +1465,23 @@ function rebuildInstances() {
           put(R * si, y, R * co, cs, cs * ts, cs, t, j * N + x);
           const o = (n - 1) * 16; m[o] = co * cs; m[o + 2] = -si * cs; m[o + 8] = si * cs; m[o + 10] = co * cs;
         }
+      }
+    }
+  } else {
+    // a field stacked through time: draw only the cells inside the chosen band of colours, or above the chosen value
+    const N = fs.N, NN = N * N, H = fs.H, h = N / 2, ts = c.tscale, cyc = G.mode === 'cyc', K = c.K;
+    const band = cyc ? (c.band || Math.max(1, Math.ceil(K / 3))) : 0, iso = Math.round(clamp(c.iso, 0.01, 1) * 255), cull = cs >= 0.8 && ts >= 0.8;
+    const show = cyc ? (a, k) => a[k] < band : (a, k) => a[k] >= iso;
+    outerF: for (let j = fs.llen - 1; j >= 0; j--) {
+      const L = fLayerAt(j), y = (j - (H - 1) / 2) * ts, tt = H > 1 ? j / (H - 1) : 1;
+      const up = j < fs.llen - 1 ? fLayerAt(j + 1) : null, dn = j > 0 ? fLayerAt(j - 1) : null;
+      for (let gy = 0; gy < N; gy++) for (let gx = 0; gx < N; gx++) {
+        const i = gx + gy * N;
+        if (!show(L, i)) continue;
+        if (cull && up && dn && gx > 0 && gy > 0 && gx < N - 1 && gy < N - 1 && show(L, i - 1) && show(L, i + 1) && show(L, i - N) && show(L, i + N) && show(up, i) && show(dn, i)) continue;
+        if (n >= cap) { V.trunc = true; break outerF; }
+        const t = cb === 'plain' ? -1 : cb === 'time' ? tt : cyc ? L[i] / K : L[i] / 255;
+        put(gx - h + 0.5, y, gy - h + 0.5, cs, cs * ts, cs, t, j * NN + i);
       }
     }
   }
@@ -1101,19 +1507,19 @@ function fitDist() {
 function setView(v) {
   if (!V.ok) return;
   const o = V.orbit;
-  if (v === 'iso') { o.az = 0.78; o.el = 0.52; }
+  if (v === 'iso') { o.az = 0.78; o.el = fieldSurface() ? 0.8 : 0.52; }
   else if (v === 'front') { o.az = 0; o.el = 0; }
   else if (v === 'top') { o.az = 0; o.el = 1.5607; }
   else if (v === 'side') { o.az = Math.PI / 2; o.el = 0; }
-  o.tx = o.ty = o.tz = 0; o.dist = fitDist(); camDirty = true;
+  o.tx = o.ty = o.tz = 0; o.dist = fitDist() * (fieldSurface() && v !== 'fit' ? 0.9 : 1); camDirty = true;
 }
 function bindOrbit(el) {
-  const ptrs = new Map(); let mode = null, sx = 0, sy = 0, t0 = 0, moved = 0, pinch = 0, mid = null;
+  const ptrs = new Map(); let mode = null, t0 = 0, moved = 0, pinch = 0, mid = null;
   el.addEventListener('contextmenu', (e) => e.preventDefault());
   el.addEventListener('pointerdown', (e) => {
     el.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
     dismissHint();
-    if (ptrs.size === 1) { mode = e.button === 2 || e.shiftKey || e.button === 1 ? 'pan' : 'rot'; sx = e.clientX; sy = e.clientY; t0 = performance.now(); moved = 0; }
+    if (ptrs.size === 1) { mode = e.button === 2 || e.shiftKey || e.button === 1 ? 'pan' : 'rot'; t0 = performance.now(); moved = 0; }
     else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; mode = 'pinch'; moved = 99; }
   });
   el.addEventListener('pointermove', (e) => {
@@ -1145,41 +1551,52 @@ function pan(dx, dy) {
   const ux = -se * Math.sin(o.az), uy = ce, uz = -se * Math.cos(o.az);
   o.tx += (-dx * rx + dy * ux) * k; o.ty += dy * uy * k; o.tz += (-dx * rz + dy * uz) * k;
 }
-const GZ = new Float32Array(3);
 function drawGizmo() {
   if (!V.ok) return;
-  const inv = V.camera.matrixWorldInverse.elements, ax = [['x', 0], ['y', 1], ['z', 2]];
-  for (const [n, i] of ax) {
-    // rotate the unit axis into camera space: column i of the view rotation
-    const vx = inv[i * 4], vy = inv[i * 4 + 1], vz = inv[i * 4 + 2];
-    GZ[i] = vz;
-    const L = 22, x2 = 35 + vx * L, y2 = 35 - vy * L;
-    const ln = $('gz' + n); ln.setAttribute('x2', x2.toFixed(1)); ln.setAttribute('y2', y2.toFixed(1)); ln.style.opacity = vz < -0.2 ? 0.55 : 1;
+  const inv = V.camera.matrixWorldInverse.elements;
+  for (const [n, i] of [['x', 0], ['y', 1], ['z', 2]]) {
+    const vx = inv[i * 4], vy = inv[i * 4 + 1], vz = inv[i * 4 + 2], L = 22;
+    const ln = $('gz' + n); ln.setAttribute('x2', (35 + vx * L).toFixed(1)); ln.setAttribute('y2', (35 - vy * L).toFixed(1)); ln.style.opacity = vz < -0.2 ? 0.55 : 1;
     const tx = $('gt' + n); tx.setAttribute('x', (35 + vx * (L + 8)).toFixed(1)); tx.setAttribute('y', (35 - vy * (L + 8)).toFixed(1));
   }
 }
 
 // ---- picking
-function cellMatrix(code) {
-  const c = cfg(), cs = G.cell * 1.12;
+function cellMatrix(info) {
+  const c = cfg(), cs = G.cell * 1.12, code = info.code;
   if (G.mode === '3d') { const N = vol.N, h = N / 2, x = code % N, y = ((code / N) | 0) % N, z = (code / (N * N)) | 0; return new THREE.Matrix4().makeScale(cs, cs, cs).setPosition(x - h + 0.5, y - h + 0.5, z - h + 0.5); }
   if (G.mode === '2d') { const N = stk.N, NN = N * N, j = (code / NN) | 0, i = code % NN, gx = i % N, gy = (i / N) | 0, h = N / 2; return new THREE.Matrix4().makeScale(cs, cs * c.tscale, cs).setPosition(gx - h + 0.5, (j - (stk.H - 1) / 2) * c.tscale, gy - h + 0.5); }
+  if (isField()) {
+    const N = fs.N, NN = N * N, i = code % NN, gx = i % N, gy = (i / N) | 0, h = N / 2;
+    if (info.layer < 0) return new THREE.Matrix4().makeScale(1.1, 1.1, 1.1).setPosition(gx - h + 0.5, -extents()[1] + cellHeight(i) * surfHeight(), gy - h + 0.5);
+    return new THREE.Matrix4().makeScale(cs, cs * c.tscale, cs).setPosition(gx - h + 0.5, (info.layer - (fs.H - 1) / 2) * c.tscale, gy - h + 0.5);
+  }
   const N = row.N, j = (code / N) | 0, x = code % N, y = ((row.H - 1) / 2 - j) * c.tscale;
   if (c.layout !== 'cylinder') return new THREE.Matrix4().makeScale(cs, cs * c.tscale, cs).setPosition(x - N / 2 + 0.5, y, 0);
   const th = (2 * Math.PI * (x + 0.5)) / N, R = N / (2 * Math.PI);
   return new THREE.Matrix4().makeRotationY(th).multiply(new THREE.Matrix4().makeScale(cs, cs * c.tscale, cs)).setPosition(R * Math.sin(th), y, R * Math.cos(th));
 }
-function placePickBox() { if (!V.ok) return; if (!pickInfo) { V.pickBox.visible = false; return; } V.pickBox.matrix.copy(cellMatrix(pickInfo.code)); V.pickBox.matrixWorldNeedsUpdate = true; V.pickBox.visible = true; }
+function placePickBox() { if (!V.ok) return; if (!pickInfo) { V.pickBox.visible = false; return; } V.pickBox.matrix.copy(cellMatrix(pickInfo)); V.pickBox.matrixWorldNeedsUpdate = true; V.pickBox.visible = true; }
 function pick(e) {
-  if (!V.ok || !V.count) return clearPick();
+  if (!V.ok || !hasState()) return clearPick();
   const r = V.renderer.domElement.getBoundingClientRect();
   V.ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), V.camera);
-  const hits = V.ray.intersectObject(V.mesh, false);
-  if (!hits.length || hits[0].instanceId === undefined) return clearPick();
-  pickInfo = { code: V.idx[hits[0].instanceId], x: e.clientX - r.left, y: e.clientY - r.top };
+  const at = { x: e.clientX - r.left, y: e.clientY - r.top };
+  if (fieldSurface()) {
+    const hits = V.surf ? V.ray.intersectObject(V.surf, false) : [];
+    if (!hits.length) return clearPick();
+    const N = fs.N, gx = clamp(Math.round(hits[0].point.x + N / 2 - 0.5), 0, N - 1), gy = clamp(Math.round(hits[0].point.z + N / 2 - 0.5), 0, N - 1);
+    pickInfo = { code: gx + gy * N, layer: -1, ...at };
+  } else {
+    if (!V.count) return clearPick();
+    const hits = V.ray.intersectObject(V.mesh, false);
+    if (!hits.length || hits[0].instanceId === undefined) return clearPick();
+    const code = V.idx[hits[0].instanceId];
+    pickInfo = { code, layer: isField() ? Math.floor(code / (fs.N * fs.N)) : -1, ...at };
+  }
   refreshTip(); placePickBox(); camDirty = true;
 }
-function clearPick() { pickInfo = null; $('tip').hidden = true; if (V.ok) { V.pickBox.visible = false; camDirty = true; } if (stateReady) renderStrip(); }
+function clearPick() { pickInfo = null; $('tip').hidden = true; if (V.ok) { V.pickBox.visible = false; camDirty = true; } if (stateReady) { renderStrip(); renderGrowthPlot(); } }
 function outcome(st, n, C) {
   if (st === 0) return lut.B[n] ? `<span class="yes">is born</span> next: ${n} ∈ B` : `stays empty: ${n} ∉ B`;
   if (st === 1) return lut.S[n] ? `<span class="yes">survives</span>: ${n} ∈ S` : `<span class="no">${C > 2 ? 'starts to decay' : 'dies'}</span>: ${n} ∉ S`;
@@ -1197,16 +1614,34 @@ function refreshTip() {
     const N = stk.N, NN = N * N, j = (code / NN) | 0, i = code % NN, L = layerAt(j), st = L.s[i], n = L.nb[i];
     html = `<b>Generation</b> <span class="n">${L.gen}</span> · cell <span class="n">(${i % N}, ${(i / N) | 0})</span><br>${stateName(st, c.C)} · <span class="n">${n}</span> live neighbour${n === 1 ? '' : 's'}<br>${outcome(st, n, c.C)}`;
     pickInfo.n = n;
-  } else {
+  } else if (G.mode === '1d') {
     const N = row.N, j = (code / N) | 0, x = code % N, R = rowAt(j), p = R.p[x];
-    html = `<b>Generation</b> <span class="n">${R.gen}</span> · cell <span class="n">${x}</span><br>` + (p === 255 ? 'part of the starting row' : `made by the pattern <span class="n">${p.toString(2).padStart(3, '0')}</span> → 1 (bit ${p} of rule ${c.rule})`);
+    html = `<b>Generation</b> <span class="n">${R.gen}</span> · cell <span class="n">${x}</span><br>` + (p === 255 ? 'part of the starting row' : `made by the pattern <span class="n">${p.toString(2).padStart(3, '0')}</span> → bit ${p} of rule ${c.rule}${c.rev ? ', then XOR the cell two rows back' : ''}`);
     pickInfo.n = p;
+  } else {
+    const N = fs.N, NN = N * N, i = code % NN, xy = `<span class="n">(${i % N}, ${(i / N) | 0})</span>`;
+    if (pickInfo.layer >= 0 && pickInfo.layer !== fs.llen - 1) {
+      const L = fLayerAt(pickInfo.layer), g = fs.lg[(fs.lstart + pickInfo.layer) % fs.H];
+      html = `<b>Generation</b> <span class="n">${g}</span> · cell ${xy}<br>` + (G.mode === 'cyc' ? `colour <span class="n">${L[i]}</span> of ${c.K}` : `value <span class="n">${(L[i] / 255 / vScale()).toFixed(3)}</span>`);
+    } else if (G.mode === 'cyc') {
+      const st = fs.s[i], nx = (st + 1) % c.K, cnt = cycCount(i);
+      const auto = c.gh && st !== 0;
+      html = `<b>Cell</b> ${xy} · generation <span class="n">${sim.gen}</span><br>colour <span class="n">${st}</span>${c.gh ? (st === 0 ? ' (resting)' : st === 1 ? ' (excited)' : ' (refractory)') : ''} → next colour <span class="n">${nx}</span><br>` +
+        (auto ? 'moves on automatically, whatever its neighbours' : `<span class="n">${cnt}</span> neighbour${cnt === 1 ? '' : 's'} already show colour ${nx}; needs θ = ${c.T}<br>${cnt >= c.T ? '<span class="yes">advances</span>' : 'waits'}`);
+      pickInfo.n = cnt;
+    } else if (c.fam === 'lenia') {
+      const a = fs.a[i], u = leniaPotential(i), g = growth(u, c.mu, c.sigma);
+      html = `<b>Cell</b> ${xy} · generation <span class="n">${sim.gen}</span><br>value <span class="n">${a.toFixed(3)}</span> · potential U = <span class="n">${u.toFixed(3)}</span><br>growth G(U) = <span class="n">${g.toFixed(2)}</span>: ${g > 0 ? `<span class="yes">grows</span> by ${(c.dt * g).toFixed(3)}` : `<span class="no">shrinks</span> by ${(-c.dt * g).toFixed(3)}`} per step`;
+      pickInfo.u = u;
+    } else {
+      const a = fs.u[i], b = fs.v[i];
+      html = `<b>Cell</b> ${xy} · generation <span class="n">${sim.gen}</span><br>u = <span class="n">${a.toFixed(3)}</span> · v = <span class="n">${b.toFixed(3)}</span><br>reaction u·v² = <span class="n">${(a * b * b).toFixed(4)}</span> turns u into v`;
+    }
   }
   const tip = $('tip'); tip.innerHTML = html; tip.hidden = false;
-  const host = $('v3host'), w = host.clientWidth, h = host.clientHeight;
-  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  const host = $('v3host'), w = host.clientWidth, h = host.clientHeight, tw = tip.offsetWidth, th = tip.offsetHeight;
   tip.style.left = clamp(pickInfo.x + 14, 6, w - tw - 6) + 'px'; tip.style.top = clamp(pickInfo.y + 14, 6, h - th - 6) + 'px';
-  if (stateReady) renderStrip();
+  if (stateReady) { renderStrip(); renderGrowthPlot(); }
 }
 
 /* =====================================================================
@@ -1238,45 +1673,66 @@ function drawGridCells(cv, N, rows, getState, C, fixedW) {
     x.stroke();
   }
 }
+function drawImageGrid(cv, cols, rows, colourOf) { // an image of a whole grid, coloured cell by cell
+  const { W, H } = sliceSize(cv, cols, rows);
+  const off = document.createElement('canvas'); off.width = cols; off.height = rows;
+  const ox = off.getContext('2d'), img = ox.createImageData(cols, rows), d = img.data;
+  for (let j = 0; j < rows; j++) for (let x = 0; x < cols; x++) { const o = (j * cols + x) * 4, rgb = colourOf(x, j); d[o] = rgb[0] * 255; d[o + 1] = rgb[1] * 255; d[o + 2] = rgb[2] * 255; d[o + 3] = 255; }
+  ox.putImageData(img, 0, 0);
+  const x = cv.getContext('2d'); x.imageSmoothingEnabled = false; x.clearRect(0, 0, W, H); x.drawImage(off, 0, 0, W, H);
+}
 function drawSlice() {
   sliceDirty = false;
   if (!hasState()) return;
-  const c = cfg();
+  const c = cfg(), lutc = CMAPS[G.cmap].lut, rgbAt = (t) => { const li = (((t < 0 ? 0 : t > 1 ? 1 : t) * 255) | 0) * 3; return [lutc[li], lutc[li + 1], lutc[li + 2]]; };
   if (G.mode === '3d') {
     const N = vol.N, y = (SL.y = clamp(SL.y, 0, N - 1));
     drawGridCells($('slCanvas'), N, N, (x, z) => vol.s[x + N * y + N * N * z], c.C);
   } else if (G.mode === '2d') {
     const N = stk.N, L = layerAt(stk.len - 1);
     drawGridCells($('slCanvas'), N, N, (x, y) => L.s[x + y * N], c.C);
+  } else if (isField()) {
+    const N = fs.N, L = fLayerAt(fs.llen - 1), cyc = G.mode === 'cyc', K = c.K, plain = c.colorBy === 'plain', ink = hexRGB(TC.ink.length === 7 ? TC.ink : '#000000');
+    drawImageGrid($('slCanvas'), N, N, (x, y) => { const v = L[x + y * N]; if (plain) { const t = cyc ? v / (K - 1) : v / 255; return ink.map((q) => q * t + (1 - t) * 0.5); } return rgbAt(cyc ? v / K : v / 255); });
   } else {
-    // space-time diagram, coloured like the 3-D view
-    const cv = $('stCanvas'), N = row.N, H = row.H, { W, H: Hp } = sliceSize(cv, N, H);
-    const off = document.createElement('canvas'); off.width = N; off.height = H;
-    const ox = off.getContext('2d'), img = ox.createImageData(N, H), d = img.data, lutc = CMAPS[G.cmap].lut;
-    const bg = hexRGB(TC.field.length === 7 ? TC.field : '#ffffff'), ink = hexRGB(TC.ink.length === 7 ? TC.ink : '#000000');
-    for (let j = 0; j < H; j++) for (let x = 0; x < N; x++) {
-      const o = (j * N + x) * 4; let r = bg[0], g = bg[1], b = bg[2];
-      if (j < row.len) {
-        const R = rowAt(j);
-        if (R.s[x]) {
-          let t; switch (c.colorBy) { case 'time': t = H > 1 ? j / (H - 1) : 1; break; case 'pattern': t = R.p[x] === 255 ? 1 : R.p[x] / 7; break; case 'age': t = ageT(R.age[x]); break; default: t = -1; }
-          if (t < 0) [r, g, b] = ink; else { const li = (((t > 1 ? 1 : t) * 255) | 0) * 3; r = lutc[li]; g = lutc[li + 1]; b = lutc[li + 2]; }
-        }
-      }
-      d[o] = r * 255; d[o + 1] = g * 255; d[o + 2] = b * 255; d[o + 3] = 255;
-    }
-    ox.putImageData(img, 0, 0);
-    const x = cv.getContext('2d'); x.imageSmoothingEnabled = false; x.clearRect(0, 0, W, Hp); x.drawImage(off, 0, 0, W, Hp);
-    drawGridCells($('rowCanvas'), N, 1, (q) => row.first[q], 2, parseFloat(cv.style.width) || 400); // same width as the diagram, so columns line up
+    const N = row.N, H = row.H, bg = hexRGB(TC.field.length === 7 ? TC.field : '#ffffff'), ink = hexRGB(TC.ink.length === 7 ? TC.ink : '#000000');
+    drawImageGrid($('stCanvas'), N, H, (x, j) => {
+      if (j >= row.len) return bg;
+      const R = rowAt(j); if (!R.s[x]) return bg;
+      let t; switch (c.colorBy) { case 'time': t = H > 1 ? j / (H - 1) : 1; break; case 'pattern': t = R.p[x] === 255 ? 1 : R.p[x] / 7; break; case 'age': t = ageT(R.age[x]); break; default: t = -1; }
+      return t < 0 ? ink : rgbAt(t);
+    });
+    drawGridCells($('rowCanvas'), N, 1, (q) => row.first[q], 2, parseFloat($('stCanvas').style.width) || 400); // same width as the diagram, so columns line up
+  }
+}
+function paintField(q, r, first) {
+  const c = cfg(), N = fs.N, rng = Math.random, tool = G.brush;
+  const disc = (rad, f) => { for (let y = -rad; y <= rad; y++) for (let x = -rad; x <= rad; x++) { if (x * x + y * y > rad * rad) continue; const X = q + x, Y = r + y; if (X < 0 || Y < 0 || X >= N || Y >= N) continue; f(X + Y * N, x, y, rad); } };
+  if (G.mode === 'cyc') {
+    if (tool === 'spiral') { if (!first) return; disc(8, (i, x, y) => { const a = (Math.atan2(y, x) + Math.PI) / (2 * Math.PI); fs.s[i] = Math.floor(a * c.K) % c.K; }); }
+    else if (tool === 'rest') disc(3, (i) => { fs.s[i] = 0; });
+    else disc(3, (i) => { fs.s[i] = Math.floor(rng() * c.K); });
+  } else if (c.fam === 'lenia') {
+    if (tool === 'orbium') { if (!first) return; ORBIUM.forEach((row20, y) => { for (let x = 0; x < 20; x++) { const X = q - 10 + x, Y = r - 10 + y; if (X >= 0 && Y >= 0 && X < N && Y < N) fs.a[X + Y * N] = parseInt(row20.substr(x * 2, 2), 16) / 255; } }); }
+    else if (tool === 'erase') disc(Math.round(c.R / 2), (i) => { fs.a[i] = 0; });
+    else disc(Math.round(c.R / 2), (i) => { fs.a[i] = Math.min(1, fs.a[i] + rng() * 0.6); });
+  } else {
+    if (tool === 'erase') disc(4, (i) => { fs.u[i] = 1; fs.v[i] = 0; });
+    else disc(3, (i) => { fs.u[i] = 0.5; fs.v[i] = 0.25 + rng() * 0.5; });
   }
 }
 function bindSlice() {
   const cell = (cv, e, cols, rows) => { const r = cv.getBoundingClientRect(); return [clamp(Math.floor(((e.clientX - r.left) / r.width) * cols), 0, cols - 1), clamp(Math.floor(((e.clientY - r.top) / r.height) * rows), 0, rows - 1)]; };
   const sl = $('slCanvas');
   const paint = (e, first) => {
+    if (isField()) {
+      const N = fs.N, [q, r] = cell(sl, e, N, N), i = q + r * N;
+      if (!first && i === SL.last) return; SL.last = i;
+      paintField(q, r, first); markCustom(); afterEdit(); drawSlice(); return;
+    }
     const N = G.mode === '3d' ? vol.N : stk.N, [q, r] = cell(sl, e, N, N);
     let arr, i;
-    if (G.mode === '3d') { arr = vol.s; i = q + N * SL.y + N * N * r; if (first) vol.age[i] = 0; }
+    if (G.mode === '3d') { arr = vol.s; i = q + N * SL.y + N * N * r; }
     else { const L = layerAt(stk.len - 1); arr = L.s; i = q + r * N; }
     if (first) SL.val = arr[i] === 1 ? 0 : 1;
     if (i === SL.last) return; SL.last = i;
@@ -1300,23 +1756,37 @@ function bindSlice() {
   rc.addEventListener('pointermove', (e) => { if (SL.painting) paintRow(e, false); });
   rc.addEventListener('pointerup', stop); rc.addEventListener('pointercancel', stop);
 }
+const BRUSHES = { cyc: [['scramble', 'Scramble'], ['spiral', 'Spiral core'], ['rest', 'Colour 0']], lenia: [['noise', 'Add noise'], ['orbium', 'Orbium'], ['erase', 'Erase']], gs: [['seed', 'Add v'], ['erase', 'Erase']] };
+const brushList = () => (G.mode === 'cyc' ? BRUSHES.cyc : BRUSHES[cfg().fam]);
 function renderF4() {
-  const m = G.mode, c = cfg();
+  const m = G.mode, c = cfg(), field = isField();
   $('slCanvas').hidden = m === '1d'; $('stCanvas').hidden = m !== '1d'; $('rowWrap').hidden = m !== '1d';
   $('f4').classList.toggle('one', m === '1d');
-  $('f4title').textContent = m === '3d' ? 'Slice & draw: one layer of the volume' : m === '2d' ? 'Draw on the newest generation' : 'The space-time diagram';
+  $('f4title').textContent = m === '3d' ? 'Slice & draw: one layer of the volume' : m === '2d' ? 'Draw on the newest generation' : m === '1d' ? 'The space-time diagram' : 'The field from above: draw on it';
   $('f4cap').textContent = m === '3d' ? 'One horizontal layer of the volume, seen from above. Click or drag to add and remove live cells; the change goes straight into the simulation. Move the layer with the slider.'
     : m === '2d' ? 'The newest generation, seen from above (the top layer of Fig. 1). Click or drag to add and remove live cells and change what grows next.'
-    : 'Each row is one generation, oldest at the top, as in Wolfram\'s diagrams. Draw on the starting row below it and the whole history is recomputed at once.';
-  const leg = `<div class="f4leg"><span><i style="background:var(--ink)"></i>alive</span>${m !== '1d' && c.C > 2 ? '<span><i style="background:color-mix(in srgb,var(--blue) 60%,var(--field))"></i>dying</span>' : ''}<span><i style="background:var(--field)"></i>empty</span></div>`;
+    : m === '1d' ? 'Each row is one generation, oldest at the top, as in Wolfram\'s diagrams. Draw on the starting row below it and the whole history is recomputed at once.'
+    : 'The current state seen from above, coloured as in Fig. 1. Pick a brush and click or drag to disturb the field while it runs.';
   let h = '';
-  if (m === '3d') h = fld('slY', '<i>y</i>', 0, c.N - 1, 1, SL.y, 'layer') + `<label class="tgl"><input type="checkbox" id="tSlice" ${G.showSlice ? 'checked' : ''}><span class="tgl-box"></span>Show this layer in Fig. 1</label>`;
-  if (m !== '1d') h += `<div class="row"><button class="btn" id="slClear">Clear all</button><button class="btn" id="slRand">Scatter on ${m === '3d' ? 'layer' : 'grid'}</button></div><div class="row"><button class="btn primary" id="slSeed">Use as seed</button></div><p class="hint">“Use as seed” stores the current ${m === '3d' ? 'volume' : 'generation'} so that Restart comes back to it.</p>`;
-  else h = `<div class="row"><button class="btn" id="rwSingle">Single cell</button><button class="btn" id="rwRand">Random row</button><button class="btn" id="rwClear">Clear row</button></div>`;
-  $('f4side').innerHTML = h + leg;
-  $('f4side').hidden = false;
-  if (m === '3d') { bindFld('slY', (v) => { SL.y = v; if (!G.showSlice) { G.showSlice = true; $('tSlice').checked = true; } placeSlicePlane(); drawSlice(); }); $('tSlice').onchange = (e) => { G.showSlice = e.target.checked; placeSlicePlane(); }; }
-  if (m !== '1d') {
+  if (field) {
+    const bl = brushList(); if (!bl.some(([k]) => k === G.brush)) G.brush = bl[0][0];
+    h = `<div class="lbl">Brush</div><div class="seg wide" id="brushSeg">${bl.map(([k, l]) => `<button class="seg-b" data-v="${k}">${l}</button>`).join('')}</div>
+      <div class="row"><button class="btn" id="slClear">Clear</button><button class="btn" id="slRand">Randomise</button><button class="btn primary" id="slSeed">Use as seed</button></div>
+      <p class="hint">${m === 'cyc' ? 'A <b>spiral core</b> lays the colours round a point like a clock face; that point becomes the centre of a rotating spiral.' : c.fam === 'lenia' ? 'Drop an <b>Orbium</b> into empty space and it starts gliding. Noise usually dissolves, but sometimes organises itself.' : 'Each dab of <b>v</b> seeds a new spot that grows and divides according to F and k.'}</p>`;
+  } else {
+    if (m === '3d') h = fld('slY', '<i>y</i>', 0, c.N - 1, 1, SL.y, 'layer') + `<label class="tgl"><input type="checkbox" id="tSlice" ${G.showSlice ? 'checked' : ''}><span class="tgl-box"></span>Show this layer in Fig. 1</label>`;
+    if (m !== '1d') h += `<div class="row"><button class="btn" id="slClear">Clear all</button><button class="btn" id="slRand">Scatter on ${m === '3d' ? 'layer' : 'grid'}</button></div><div class="row"><button class="btn primary" id="slSeed">Use as seed</button></div><p class="hint">“Use as seed” stores the current ${m === '3d' ? 'volume' : 'generation'} so that Restart comes back to it.</p>`;
+    else h = `<div class="row"><button class="btn" id="rwSingle">Single cell</button><button class="btn" id="rwRand">Random row</button><button class="btn" id="rwClear">Clear row</button></div>`;
+    h += `<div class="f4leg"><span><i style="background:var(--ink)"></i>alive</span>${m !== '1d' && c.C > 2 ? '<span><i style="background:color-mix(in srgb,var(--blue) 60%,var(--field))"></i>dying</span>' : ''}<span><i style="background:var(--field)"></i>empty</span></div>`;
+  }
+  $('f4side').innerHTML = h;
+  if (field) {
+    segBind('brushSeg', G.brush, (v) => { G.brush = v; });
+    $('slClear').onclick = () => { if (m === 'cyc') fs.s.fill(0); else if (c.fam === 'lenia') fs.a.fill(0); else { fs.u.fill(1); fs.v.fill(0); } markCustom(); afterEdit(); drawSlice(); };
+    $('slRand').onclick = () => { const rng = mulberry32((Math.random() * 1e9) | 0); if (m === 'cyc') initCyc(Object.assign({}, c, { init: 'random' }), rng, fs.s); else if (c.fam === 'lenia') initLenia(Object.assign({}, c, { init: 'blobs' }), rng, fs.a); else initGS(Object.assign({}, c, { init: 'scatter' }), rng, fs.u, fs.v); markCustom(); afterEdit(); drawSlice(); };
+    $('slSeed').onclick = () => { custom[m] = m === 'cyc' ? { N: c.N, s: fs.s.slice() } : c.fam === 'lenia' ? { N: c.N, fam: 'lenia', v: fs.a.slice() } : { N: c.N, fam: 'gs', v: fs.v.slice(), u: fs.u.slice() }; c.init = 'custom'; markCustom(); renderInitGroup(); toast('Saved. Restart now returns to this state.'); };
+  } else if (m !== '1d') {
+    if (m === '3d') { bindFld('slY', (v) => { SL.y = v; if (!G.showSlice) { G.showSlice = true; $('tSlice').checked = true; } placeSlicePlane(); drawSlice(); }); $('tSlice').onchange = (e) => { G.showSlice = e.target.checked; placeSlicePlane(); }; }
     $('slClear').onclick = () => { if (m === '3d') { vol.s.fill(0); vol.age.fill(0); } else { const L = layerAt(stk.len - 1); L.s.fill(0); L.age.fill(0); } markCustom(); afterEdit(); drawSlice(); };
     $('slRand').onclick = () => {
       const rng = mulberry32((Math.random() * 1e9) | 0), d = c.density || 0.4;
@@ -1347,6 +1817,11 @@ function neighSVG() {
     ['left', 'cell', 'right'].forEach((l, i) => { s += `<rect x="${1 + i * cs}" y="1" width="${cs}" height="${cs}" class="nh ${i === 1 ? 'self' : 'in'}"/><text x="${1 + i * cs + cs / 2}" y="${cs + 16}" class="mt tick" text-anchor="middle">${l}</text>`; });
     return `<svg viewBox="0 0 ${3 * cs + 2} ${cs + 22}" width="${3 * cs + 2}" height="${cs + 22}">${s}</svg>`;
   }
+  if (m === 'cyc') {
+    const R = cfg().R, n = 2 * R + 1, cs = Math.max(8, Math.min(20, Math.floor(140 / n))), w = n * cs + 2; let s = '';
+    for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) { const self = !dx && !dy, inN = !self && (!vn || Math.abs(dx) + Math.abs(dy) <= R); s += `<rect x="${1 + (dx + R) * cs}" y="${1 + (dy + R) * cs}" width="${cs}" height="${cs}" class="nh ${self ? 'self' : inN ? 'in' : ''}"/>`; }
+    return `<svg viewBox="0 0 ${w} ${w}" width="${w}" height="${w}">${s}</svg>`;
+  }
   const d3 = m === '3d', cs = 20, gap = 22, layers = d3 ? [-1, 0, 1] : [0];
   const w = layers.length * 3 * cs + (layers.length - 1) * gap + 2, h = 3 * cs + (d3 ? 22 : 4);
   let s = '';
@@ -1373,15 +1848,13 @@ function lifecycleSVG() {
   const arrow = (i, lab) => { s += `<path d="M${X(i) + nw + 3},${y + nh / 2} L${X(i + 1) - 4},${y + nh / 2}" class="lc-e" marker-end="url(#ah)"/><text x="${X(i) + nw + gap / 2}" y="${y + nh / 2 - 7}" class="lc-el">${lab}</text>`; };
   arrow(0, 'n ∈ B');
   if (C > 2) for (let i = 1; i < nodes.length - 1; i++) arrow(i, i === 1 ? 'n ∉ S' : 'next');
-  // self-loop on Alive
   const ax = X(1) + nw / 2; s += `<path d="M${ax - 12},${y - 2} C${ax - 26},${y - 34} ${ax + 26},${y - 34} ${ax + 12},${y - 3}" class="lc-e" marker-end="url(#ah)"/><text x="${ax}" y="${y - 30}" class="lc-el">n ∈ S</text>`;
-  // return to Empty
   const last = nodes.length - 1, x1 = X(last) + nw / 2, x0 = X(0) + nw / 2, yb = y + nh + 2;
   s += `<path d="M${x1},${yb} C${x1},${yb + 40} ${x0},${yb + 40} ${x0},${yb + 3}" class="lc-e" marker-end="url(#ah)"/><text x="${(x0 + x1) / 2}" y="${yb + 36}" class="lc-el">${C > 2 ? 'after the last dying state' : 'n ∉ S'}</text>`;
   return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${s}</svg>`;
 }
 function renderStrip() {
-  const el = $('strip'); if (!el || G.mode === '1d') return;
+  const el = $('strip'); if (!el || !isLife()) return;
   const c = cfg(), mx = maxNb(), cw = mx > 10 ? 24 : 34, lw = 96, W = lw + (mx + 1) * cw + 2, H = 84;
   let s = '';
   for (let n = 0; n <= mx; n++) s += `<text x="${lw + n * cw + cw / 2}" y="10">${n}</text>`;
@@ -1389,7 +1862,7 @@ function renderStrip() {
     s += `<text class="rl" x="0" y="${y + 13}">${k} · ${l}</text>`;
     for (let n = 0; n <= mx; n++) { const on = c[k].includes(n); s += `<rect class="c ${on ? k.toLowerCase() : ''}" data-k="${k}" data-n="${n}" x="${lw + n * cw + 1}" y="${y}" width="${cw - 2}" height="26" rx="2"/>`; if (on) s += `<text class="on" x="${lw + n * cw + cw / 2}" y="${y + 13}">${n}</text>`; }
   });
-  if (pickInfo && pickInfo.n !== undefined && G.mode !== '1d') s += `<rect class="hl" x="${lw + pickInfo.n * cw - 1}" y="18" width="${cw + 2}" height="64" rx="3"/>`;
+  if (pickInfo && pickInfo.n !== undefined) s += `<rect class="hl" x="${lw + pickInfo.n * cw - 1}" y="18" width="${cw + 2}" height="64" rx="3"/>`;
   el.innerHTML = `<svg class="strip" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="max-width:100%">${s}</svg>`;
 }
 function ruleTableSVG() {
@@ -1405,14 +1878,99 @@ function ruleTableSVG() {
   }
   return `<svg class="rt" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="max-width:100%">${s}</svg>`;
 }
+function wheelSVG() {
+  const c = cfg(), K = c.K, R = 72, cx = 96, cy = 90, W = 192, H = 182, lutc = CMAPS[G.cmap].lut;
+  const col = (k) => { const li = Math.floor((k / K) * 255) * 3; return `rgb(${lutc[li] * 255 | 0},${lutc[li + 1] * 255 | 0},${lutc[li + 2] * 255 | 0})`; };
+  const ink = (k) => { const li = Math.floor((k / K) * 255) * 3; return 0.2126 * lutc[li] + 0.7152 * lutc[li + 1] + 0.0722 * lutc[li + 2] > 0.5 ? '#111' : '#fff'; };
+  let s = `<defs><marker id="ahw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="ahf"/></marker></defs>`;
+  const pt = (k, r) => { const a = (k / K) * 2 * Math.PI - Math.PI / 2; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
+  for (let k = 0; k < K; k++) { const [x1, y1] = pt(k + 0.22, R), [x2, y2] = pt(k + 0.78, R); s += `<path d="M${x1.toFixed(1)},${y1.toFixed(1)} A${R},${R} 0 0 1 ${x2.toFixed(1)},${y2.toFixed(1)}" class="wheel-a" marker-end="url(#ahw)"/>`; }
+  for (let k = 0; k < K; k++) { const [x, y] = pt(k, R), rr = K > 16 ? 7 : 9; s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rr}" fill="${col(k)}" stroke="var(--sheet)" stroke-width="1.5"/>`; if (K <= 16) s += `<text x="${x.toFixed(1)}" y="${(y + 0.5).toFixed(1)}" class="wheel-t" style="fill:${ink(k)};font-size:9px">${k}</text>`; }
+  s += `<text x="${cx}" y="${cy - 6}" class="wheel-t" style="font-size:13px;font-weight:600;fill:var(--ink)">κ = ${K}</text><text x="${cx}" y="${cy + 12}" class="wheel-t">${c.gh ? '0 rest · 1 fires' : 'colours'}</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${s}</svg>`;
+}
+function kernelPlotSVG() {
+  const c = cfg(), W = 260, H = 120, pl = 30, pb = 22, iw = W - pl - 8, ih = H - pb - 10;
+  let d = '', mx = 0; const pts = [];
+  for (let i = 0; i <= 120; i++) { const r = i / 120, v = kernelProfile(r, c.beta); pts.push([r, v]); mx = Math.max(mx, v); }
+  pts.forEach(([r, v], i) => { d += `${i ? 'L' : 'M'}${(pl + r * iw).toFixed(1)},${(10 + ih - (v / (mx || 1)) * ih).toFixed(1)}`; });
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"><line class="axis" x1="${pl}" x2="${pl + iw}" y1="${10 + ih}" y2="${10 + ih}"/><line class="axis" x1="${pl}" x2="${pl}" y1="10" y2="${10 + ih}"/>
+    <path class="plot-l" d="${d}"/><text class="mt tick" x="${pl}" y="${H - 6}" text-anchor="middle">0</text><text class="mt tick" x="${pl + iw}" y="${H - 6}" text-anchor="middle">R = ${c.R}</text>
+    <text class="mt tick" x="${pl + iw / 2}" y="${H - 6}" text-anchor="middle">distance</text><text class="mt tick" x="${pl - 6}" y="16" text-anchor="end">K</text></svg>`;
+}
+function renderGrowthPlot() {
+  const el = $('gplot'); if (!el || G.mode !== 'cont' || cfg().fam !== 'lenia') return;
+  const c = cfg(), W = 260, H = 120, pl = 30, pb = 22, iw = W - pl - 8, ih = H - pb - 10, umax = Math.min(1, Math.max(0.3, c.mu + 6 * c.sigma));
+  const X = (u) => pl + (u / umax) * iw, Y = (g) => 10 + ih / 2 - (g * ih) / 2;
+  let d = ''; for (let i = 0; i <= 200; i++) { const u = (i / 200) * umax; d += `${i ? 'L' : 'M'}${X(u).toFixed(1)},${Y(growth(u, c.mu, c.sigma)).toFixed(1)}`; }
+  let s = `<line class="plot-z" x1="${pl}" x2="${pl + iw}" y1="${Y(0)}" y2="${Y(0)}"/><line class="axis" x1="${pl}" x2="${pl}" y1="10" y2="${10 + ih}"/>
+    <line class="plot-m" x1="${X(c.mu)}" x2="${X(c.mu)}" y1="10" y2="${10 + ih}"/><path class="plot-l" d="${d}"/>
+    <text class="mt tick" x="${pl - 6}" y="${Y(1) + 4}" text-anchor="end">+1</text><text class="mt tick" x="${pl - 6}" y="${Y(-1) + 4}" text-anchor="end">−1</text>
+    <text class="mt tick" x="${X(c.mu)}" y="${H - 6}" text-anchor="middle">μ = ${c.mu}</text><text class="mt tick" x="${pl + iw}" y="${H - 6}" text-anchor="end">U</text>`;
+  if (pickInfo && pickInfo.u !== undefined && pickInfo.u <= umax) s += `<circle class="plot-pk" cx="${X(pickInfo.u)}" cy="${Y(growth(pickInfo.u, c.mu, c.sigma))}" r="4.5"/>`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${s}</svg>`;
+}
+function drawKernelImage() {
+  const cv = $('kcv'); if (!cv) return;
+  const c = cfg(), R = c.R, n = 2 * R + 1, lutc = CMAPS[G.cmap].lut; cv.width = n; cv.height = n;
+  const x = cv.getContext('2d'), img = x.createImageData(n, n); let mx = 0;
+  const vals = []; for (let y = -R; y <= R; y++) for (let xx = -R; xx <= R; xx++) { const v = kernelProfile(Math.sqrt(xx * xx + y * y) / R, c.beta); vals.push(v); mx = Math.max(mx, v); }
+  vals.forEach((v, i) => { const li = Math.floor((v / (mx || 1)) * 255) * 3, o = i * 4; img.data[o] = lutc[li] * 255; img.data[o + 1] = lutc[li + 1] * 255; img.data[o + 2] = lutc[li + 2] * 255; img.data[o + 3] = 255; });
+  x.putImageData(img, 0, 0);
+}
+const GS_MAP = { k: [0.04, 0.07], F: [0, 0.09] };
+function pearsonSVG() {
+  const c = cfg(), W = 300, H = 220, pl = 40, pb = 30, iw = W - pl - 10, ih = H - pb - 10;
+  const X = (k) => pl + ((k - GS_MAP.k[0]) / (GS_MAP.k[1] - GS_MAP.k[0])) * iw, Y = (F) => 10 + ih - ((F - GS_MAP.F[0]) / (GS_MAP.F[1] - GS_MAP.F[0])) * ih;
+  let s = `<rect class="pm-bg" x="${pl}" y="10" width="${iw}" height="${ih}"/>`;
+  for (let k = 0.045; k <= 0.0701; k += 0.005) s += `<line class="gl" x1="${X(k)}" x2="${X(k)}" y1="10" y2="${10 + ih}"/><text class="mt tick" x="${X(k)}" y="${H - 14}" text-anchor="middle">${k.toFixed(3)}</text>`;
+  for (let F = 0; F <= 0.0901; F += 0.02) s += `<line class="gl" x1="${pl}" x2="${pl + iw}" y1="${Y(F)}" y2="${Y(F)}"/><text class="mt tick" x="${pl - 5}" y="${Y(F) + 4}" text-anchor="end">${F.toFixed(2)}</text>`;
+  s += `<text class="mt tick" x="${pl + iw / 2}" y="${H - 1}" text-anchor="middle">kill rate k</text><text class="mt tick" x="10" y="${10 + ih / 2}" text-anchor="middle" transform="rotate(-90 10 ${10 + ih / 2})">feed rate F</text>`;
+  CASES.filter((cs) => cs.g === 'cont' && cs.c.fam === 'gs').forEach((cs) => { s += `<circle class="pm-pt" data-case="${cs.id}" cx="${X(cs.c.k)}" cy="${Y(cs.c.F)}" r="5"><title>${esc(cs.name)}</title></circle>`; });
+  s += `<circle class="pm-cur" cx="${X(c.k)}" cy="${Y(c.F)}" r="6.5" pointer-events="none"/>`;
+  return `<svg id="pmap" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="max-width:100%">${s}</svg>`;
+}
 function renderFig3() {
   const m = G.mode, c = cfg(), el = $('f3');
+  const lam = lambdaOf(), lamTxt = lam === null ? '' : ` Langton's <b>λ = ${lam.toFixed(3)}</b>: the fraction of all neighbourhood patterns that produce a live cell${isLife() && c.C > 2 ? ' (counting only live and empty cells)' : ''}. ${lam < 0.1 ? 'That is low: expect activity to die out (Class 1).' : lam < 0.4 ? 'That is in the band where complex behaviour often appears.' : 'That is high: expect chaotic, Class 3 behaviour.'}`;
   if (m === '1d') {
     const r = c.rule, on = range(0, 7).filter((p) => (r >> p) & 1).reverse();
     el.innerHTML = `<div class="f3"><div><h3>Neighbourhood</h3>${neighSVG()}</div>
       <div><h3>The rule table · click a tile to flip it</h3><div id="rtab">${ruleTableSVG()}</div></div>
-      <p class="f3-text f3-wide">Each cell looks at itself and its two neighbours, so there are 2³ = 8 possible patterns. The rule says which of them produce a live cell. Read the eight outputs as a binary number, from 111 on the left to 000 on the right: <b>${r.toString(2).padStart(8, '0')}₂ = ${on.length ? on.map((p) => 1 << p).join(' + ') : '0'} = ${r}</b>. That is why there are exactly 256 elementary rules.${c.colorBy === 'pattern' ? ' In Fig. 1, each live cell is coloured by the pattern that created it.' : ''}</p></div>`;
+      <p class="f3-text f3-wide">Each cell looks at itself and its two neighbours, so there are 2³ = 8 possible patterns. The rule says which of them produce a live cell. Read the eight outputs as a binary number, from 111 on the left to 000 on the right: <b>${r.toString(2).padStart(8, '0')}₂ = ${on.length ? on.map((p) => 1 << p).join(' + ') : '0'} = ${r}</b>. That is why there are exactly 256 elementary rules.${c.rev ? ' <b>Reversible:</b> each new cell is the table\'s output XOR the same cell two rows back, so the previous row can always be recovered and ⇄ Reverse runs history backwards.' : ''}${lamTxt}${c.colorBy === 'pattern' ? ' In Fig. 1, each live cell is coloured by the pattern that created it.' : ''}</p></div>`;
     el.querySelectorAll('.rt-g').forEach((g) => g.addEventListener('click', () => setRule1(c.rule ^ (1 << +g.dataset.p))));
+    return;
+  }
+  if (m === 'cyc') {
+    const n = nbCount(c.R, c.nbh);
+    el.innerHTML = `<div class="f3"><div><h3>The colour wheel</h3>${wheelSVG()}</div>
+      <div><h3>Neighbourhood · ${c.nbh === 'VN' ? 'von Neumann' : 'Moore'} · range ${c.R} · ${n} cells</h3>${neighSVG()}</div>
+      <p class="f3-text f3-wide">${c.gh
+        ? `<b>Greenberg–Hastings rule.</b> Colour 0 is a <b>resting</b> cell, colour 1 is <b>excited</b> and colours 2 to ${c.K - 1} are <b>refractory</b>. A resting cell fires (0 → 1) when at least <b>θ = ${c.T}</b> of its ${n} neighbours are excited. Excited and refractory cells move on one colour every step whatever their neighbours do, and return to rest after colour ${c.K - 1}. Because a cell that has just fired cannot fire again until it has recovered, waves can only travel forwards, and broken wave ends curl into spirals.`
+        : `<b>Cyclic rule.</b> The ${c.K} colours form a loop: 0 → 1 → … → ${c.K - 1} → 0. A cell in colour <i>k</i> moves to <i>k</i> + 1 when at least <b>θ = ${c.T}</b> of its ${n} neighbours already show <i>k</i> + 1; otherwise it waits. Every colour is “eaten” by the next one, like rock–paper–scissors with ${c.K} players. Where all colours meet round a point, the point can never settle and becomes the core of a rotating spiral.`}
+        ${c.p < 1 ? ` With <b>p = ${c.p}</b>, a cell that may advance does so only with that probability.` : ''} Click a cell in Fig. 1 to see how many of its neighbours are ahead of it.</p></div>`;
+    return;
+  }
+  if (m === 'cont') {
+    if (c.fam === 'gs') {
+      el.innerHTML = `<div class="f3"><div><h3>The equations</h3>
+          <p class="f3-eq">u′ = u + D<sub>u</sub>∇²u − u v² + F (1 − u)<br>v′ = v + D<sub>v</sub>∇²v + u v² − (F + k) v</p>
+          <p class="f3-text">Two chemicals per cell. <b>u</b> is food, fed in everywhere at rate <b>F = ${c.F}</b>. <b>v</b> is a catalyst that turns food into more of itself (u + 2v → 3v) and is removed at rate F + <b>k = ${c.k}</b>. ∇² spreads each chemical to its neighbours; u spreads twice as fast as v (D<sub>u</sub> = 1, D<sub>v</sub> = 0.5). Fig. 1 shows v; each generation is ${c.sub} small steps.</p></div>
+        <div><h3>The F–k map · click to move</h3>${pearsonSVG()}<p class="hint">Dots are the cases in the library. Pearson (1993) mapped this plane into regions of spots, stripes, waves and chaos.</p></div></div>`;
+      $('pmap').addEventListener('click', (e) => {
+        const pt = e.target.closest('.pm-pt'); if (pt) { applyCase(pt.dataset.case); return; }
+        const svg = $('pmap'), r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal, px = ((e.clientX - r.left) / r.width) * vb.width, py = ((e.clientY - r.top) / r.height) * vb.height;
+        const iw = vb.width - 50, ih = vb.height - 40; if (px < 40 || px > 40 + iw || py < 10 || py > 10 + ih) return;
+        c.k = +(GS_MAP.k[0] + ((px - 40) / iw) * (GS_MAP.k[1] - GS_MAP.k[0])).toFixed(4); c.F = +(GS_MAP.F[0] + ((10 + ih - py) / ih) * (GS_MAP.F[1] - GS_MAP.F[0])).toFixed(4);
+        ruleChanged();
+      });
+      return;
+    }
+    el.innerHTML = `<div class="f3"><div><h3>The kernel K · who counts as a neighbour</h3><div class="row" style="align-items:flex-start;gap:14px"><canvas class="kern" id="kcv"></canvas>${kernelPlotSVG()}</div></div>
+      <div><h3>The growth function G(U)</h3><div id="gplot"></div></div>
+      <div class="f3-wide"><p class="f3-eq">U = K ∗ A &nbsp;&nbsp;·&nbsp;&nbsp; A′ = clip( A + dt · G(U), 0, 1 ) &nbsp;&nbsp;·&nbsp;&nbsp; G(U) = 2 e<sup>−(U − μ)² / 2σ²</sup> − 1</p>
+      <p class="f3-text">Each cell holds a value <b>A</b> between 0 and 1. Its <b>potential U</b> is a weighted average of the cells around it, weighted by the smooth ring-shaped kernel K of radius <b>R = ${c.R}</b>. The growth function turns U into growth: cells whose potential is close to <b>μ = ${c.mu}</b> (within about <b>σ = ${c.sigma}</b>) grow, all others shrink. The value then changes by a small time step <b>dt = ${c.dt}</b>. This is Conway's birth-and-survival idea made smooth: as R grows and dt shrinks, Lenia approaches a continuous field equation. Click a cell in Fig. 1 to place it on the growth curve.</p></div></div>`;
+    drawKernelImage(); renderGrowthPlot();
     return;
   }
   const d3 = m === '3d', vn = c.nbh === 'VN', mx = maxNb();
@@ -1423,7 +1981,7 @@ function renderFig3() {
   el.innerHTML = `<div class="f3"><div><h3>Neighbourhood · ${vn ? 'von Neumann' : 'Moore'} · ${mx} cells</h3>${neighSVG()}</div>
     <div><h3>Life cycle of one cell</h3>${lifecycleSVG()}</div>
     <div class="f3-wide"><h3>Transition table · n = live neighbours · click to toggle</h3><div id="strip"></div></div>
-    <p class="f3-text f3-wide">Each cell looks at ${who}. An empty cell is ${born}. A live cell ${surv}.${dec} Click a cell in Fig. 1 and its neighbour count is outlined in the table.</p></div>`;
+    <p class="f3-text f3-wide">Each cell looks at ${who}. An empty cell is ${born}. A live cell ${surv}.${dec}${c.p < 1 ? ` <b>Stochastic updating:</b> each step, each cell applies the rule only with probability p = ${c.p} and otherwise keeps its state.` : ''}${lamTxt} Click a cell in Fig. 1 and its neighbour count is outlined in the table.</p></div>`;
   renderStrip();
   $('strip').addEventListener('click', (e) => { const t = e.target.closest('rect.c'); if (t) toggleNum(t.dataset.k, +t.dataset.n); });
 }
@@ -1432,29 +1990,39 @@ function renderFig3() {
    Fig 2: chart and tiles
    ===================================================================== */
 let chartGeo = null;
-function niceMax(v) { if (v <= 4) return 4; const p = 10 ** Math.floor(Math.log10(v)), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
+function niceMax(v) { if (v <= 4) return v <= 1 ? 1 : 4; const p = 10 ** Math.floor(Math.log10(v)), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
+function statLabels() {
+  if (G.mode === 'cyc') return { a: 'Advancing cells', b: 'Waiting cells', bs: 'cells that did not change colour', top: 'Cells advancing per generation', bottom: null };
+  if (G.mode === 'cont') return { a: 'Mass Σ values', b: 'Activity Σ|Δ|', bs: 'total change in the last generation', top: 'Mass (sum of all cell values)', bottom: 'Activity (total change per generation)' };
+  return { a: 'Live cells', b: 'Births · deaths', bs: 'in the last generation', top: 'Live cells', bottom: 'Births and deaths per generation' };
+}
 function drawChart() {
-  const svg = $('popSvg'), W = Math.max(280, $('chartWrap').clientWidth), H = 250, A = sim.hA, n = A.length;
-  const pl = 54, pr = 14, t1 = 26, b1 = 128, t2 = 168, b2 = 226, iw = W - pl - pr;
-  const maxA = niceMax(Math.max(1, ...A)), maxBD = niceMax(Math.max(1, ...sim.hB, ...sim.hD));
+  const svg = $('popSvg'), W = Math.max(280, $('chartWrap').clientWidth), A = sim.hA, n = A.length, L = statLabels(), two = !!L.bottom, H = two ? 250 : 170;
+  const pl = 54, pr = 14, t1 = 26, b1 = 128, t2 = 168, b2 = two ? 226 : b1, iw = W - pl - pr, dec = G.mode === 'cont' ? 1 : 0;
+  const maxA = niceMax(Math.max(1e-9, ...A)), maxBD = niceMax(Math.max(1e-9, ...sim.hB, ...sim.hD));
   const X = (i) => pl + (n <= 1 ? 0 : (i / (n - 1)) * iw), Y1 = (v) => b1 - (v / maxA) * (b1 - t1), Y2 = (v) => b2 - (v / maxBD) * (b2 - t2);
+  const tick = (v) => (dec && v < 10 ? v.toFixed(1) : fmt(v));
   let s = '';
-  for (let k = 0; k <= 2; k++) { const v = (maxA * k) / 2, y = Y1(v); s += `<line class="gl" x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}"/><text class="mt tick" x="${pl - 6}" y="${y + 4}" text-anchor="end">${fmt(v)}</text>`; }
-  for (let k = 0; k <= 1; k++) { const v = maxBD * k, y = Y2(v); s += `<line class="gl" x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}"/><text class="mt tick" x="${pl - 6}" y="${y + 4}" text-anchor="end">${fmt(v)}</text>`; }
-  s += `<text class="mt lab" x="${pl}" y="14">Live cells</text><text class="mt lab" x="${pl}" y="${t2 - 12}">Births and deaths per generation</text>`;
-  s += `<g transform="translate(${W - pr - 150},${t2 - 16})"><line x1="0" x2="14" y1="-4" y2="-4" class="c-b"/><text class="mt tick" x="18" y="0">births</text><line x1="70" x2="84" y1="-4" y2="-4" class="c-d"/><text class="mt tick" x="88" y="0">deaths</text></g>`;
+  for (let k = 0; k <= 2; k++) { const v = (maxA * k) / 2, y = Y1(v); s += `<line class="gl" x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}"/><text class="mt tick" x="${pl - 6}" y="${y + 4}" text-anchor="end">${tick(v)}</text>`; }
+  s += `<text class="mt lab" x="${pl}" y="14">${L.top}</text>`;
+  if (two) {
+    for (let k = 0; k <= 1; k++) { const v = maxBD * k, y = Y2(v); s += `<line class="gl" x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}"/><text class="mt tick" x="${pl - 6}" y="${y + 4}" text-anchor="end">${tick(v)}</text>`; }
+    s += `<text class="mt lab" x="${pl}" y="${t2 - 12}">${L.bottom}</text>`;
+    if (G.mode !== 'cont') s += `<g transform="translate(${W - pr - 150},${t2 - 16})"><line x1="0" x2="14" y1="-4" y2="-4" class="c-b"/><text class="mt tick" x="18" y="0">births</text><line x1="70" x2="84" y1="-4" y2="-4" class="c-d"/><text class="mt tick" x="88" y="0">deaths</text></g>`;
+  }
   if (n > 1) {
     let pa = '', pb = '', pd = '';
     const stepI = Math.max(1, Math.floor(n / (iw * 1.5)));
     for (let i = 0; i < n; i += stepI) { const x = X(i).toFixed(1); pa += `${i ? 'L' : 'M'}${x},${Y1(A[i]).toFixed(1)}`; pb += `${i ? 'L' : 'M'}${x},${Y2(sim.hB[i]).toFixed(1)}`; pd += `${i ? 'L' : 'M'}${x},${Y2(sim.hD[i]).toFixed(1)}`; }
     const xl = X(n - 1).toFixed(1); pa += `L${xl},${Y1(A[n - 1]).toFixed(1)}`; pb += `L${xl},${Y2(sim.hB[n - 1]).toFixed(1)}`; pd += `L${xl},${Y2(sim.hD[n - 1]).toFixed(1)}`;
-    s += `<path class="c-area" d="${pa}L${xl},${b1}L${pl},${b1}Z"/><path class="c-alive" d="${pa}"/><path class="c-d" d="${pd}"/><path class="c-b" d="${pb}"/>`;
+    s += `<path class="c-area" d="${pa}L${xl},${b1}L${pl},${b1}Z"/><path class="c-alive" d="${pa}"/>`;
+    if (two) s += (G.mode === 'cont' ? '' : `<path class="c-d" d="${pd}"/>`) + `<path class="c-b" d="${pb}"/>`;
   }
-  s += `<line class="axis" x1="${pl}" x2="${W - pr}" y1="${b1}" y2="${b1}"/><line class="axis" x1="${pl}" x2="${W - pr}" y1="${b2}" y2="${b2}"/>`;
+  s += `<line class="axis" x1="${pl}" x2="${W - pr}" y1="${b1}" y2="${b1}"/>` + (two ? `<line class="axis" x1="${pl}" x2="${W - pr}" y1="${b2}" y2="${b2}"/>` : '');
   const g0 = sim.h0, g1 = sim.h0 + Math.max(0, n - 1);
   s += `<text class="mt tick" x="${pl}" y="${b2 + 16}">gen ${g0}</text><text class="mt tick" x="${W - pr}" y="${b2 + 16}" text-anchor="end">gen ${g1}</text>`;
   s += `<line id="hovL" class="hover-l" x1="0" x2="0" y1="${t1}" y2="${b2}" visibility="hidden"/>`;
-  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('height', H); svg.innerHTML = s;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H + (two ? 0 : 20)}`); svg.setAttribute('height', H + (two ? 0 : 20)); svg.innerHTML = s;
   chartGeo = { X, pl, iw, n, W };
 }
 function bindChart() {
@@ -1463,22 +2031,41 @@ function bindChart() {
     if (!chartGeo || chartGeo.n < 2) return;
     const r = svg.getBoundingClientRect(), px = ((e.clientX - r.left) / r.width) * chartGeo.W, i = clamp(Math.round(((px - chartGeo.pl) / chartGeo.iw) * (chartGeo.n - 1)), 0, chartGeo.n - 1);
     const l = $('hovL'); if (l) { l.setAttribute('x1', chartGeo.X(i)); l.setAttribute('x2', chartGeo.X(i)); l.setAttribute('visibility', 'visible'); }
-    $('popRead').innerHTML = `gen <b>${sim.h0 + i}</b> · live <b>${fmt(sim.hA[i])}</b> · births <b>${fmt(sim.hB[i])}</b> · deaths <b>${fmt(sim.hD[i])}</b>`;
+    $('popRead').innerHTML = G.mode === 'cont' ? `gen <b>${sim.h0 + i}</b> · mass <b>${fmtD(sim.hA[i], 1)}</b> · activity <b>${fmtD(sim.hB[i], 2)}</b>`
+      : G.mode === 'cyc' ? `gen <b>${sim.h0 + i}</b> · advancing <b>${fmt(sim.hA[i])}</b>`
+      : `gen <b>${sim.h0 + i}</b> · live <b>${fmt(sim.hA[i])}</b> · births <b>${fmt(sim.hB[i])}</b> · deaths <b>${fmt(sim.hD[i])}</b>`;
   });
   svg.addEventListener('pointerleave', () => { const l = $('hovL'); if (l) l.setAttribute('visibility', 'hidden'); $('popRead').textContent = ''; });
 }
-function totalCells() { const c = cfg(); return G.mode === '3d' ? c.N ** 3 : G.mode === '2d' ? c.N * c.N : c.N; }
+function totalCells() { const c = cfg(); return G.mode === '3d' ? c.N ** 3 : G.mode === '1d' ? c.N : c.N * c.N; }
 function updateStatsUI() {
-  const c = cfg(), tot = totalCells(), dens = (100 * sim.alive) / tot, b = sim.beh || classify();
+  const c = cfg(), tot = totalCells(), b = sim.beh || classify(), L = statLabels(), pct = (x) => (x < 1 ? x.toFixed(2) : x.toFixed(1));
   $('tGen').textContent = fmt(sim.gen);
   $('tGenS').textContent = sim.ms ? `${sim.ms < 1 ? sim.ms.toFixed(2) : sim.ms.toFixed(1)} ms per step` : 'press Play or Step';
-  $('tAlive').textContent = fmt(sim.alive);
-  $('tAliveS').textContent = `${dens < 1 ? dens.toFixed(2) : dens.toFixed(1)} % of ${fmt(tot)} cells${G.mode === '3d' ? '' : G.mode === '2d' ? ' in the newest layer' : ' in the newest row'}${sim.occ > sim.alive ? ` · ${fmt(sim.occ - sim.alive)} dying` : ''}`;
-  $('tBD').innerHTML = `<span style="color:var(--ok)">+${fmt(sim.births)}</span><span style="color:var(--ink-3)">·</span><span style="color:var(--bad)">−${fmt(sim.deaths)}</span>`;
+  $('tAliveL').textContent = L.a; $('tBDL').textContent = L.b; $('tBDS').textContent = L.bs;
+  let hudMain;
+  if (G.mode === 'cont') {
+    $('tAlive').textContent = fmtD(sim.alive, 1);
+    $('tAliveS').textContent = `${fmt(sim.occ)} cells above 0.1 · ${pct((100 * sim.occ) / tot)} % of the grid`;
+    $('tBD').textContent = fmtD(sim.births, 2);
+    hudMain = [`<span>mass<b>${fmtD(sim.alive, 1)}</b></span>`, `<span>active cells<b>${fmt(sim.occ)}</b></span>`];
+  } else if (G.mode === 'cyc') {
+    $('tAlive').textContent = fmt(sim.alive);
+    $('tAliveS').textContent = `${pct((100 * sim.alive) / tot)} % of ${fmt(tot)} cells changed colour`;
+    $('tBD').textContent = fmt(tot - sim.alive);
+    hudMain = [`<span>advancing<b>${fmt(sim.alive)}</b></span>`, `<span>of<b>${fmt(tot)}</b></span>`];
+  } else {
+    const dens = (100 * sim.alive) / tot;
+    $('tAlive').textContent = fmt(sim.alive);
+    $('tAliveS').textContent = `${pct(dens)} % of ${fmt(tot)} cells${G.mode === '3d' ? '' : G.mode === '2d' ? ' in the newest layer' : ' in the newest row'}${sim.occ > sim.alive ? ` · ${fmt(sim.occ - sim.alive)} dying` : ''}`;
+    $('tBD').innerHTML = `<span style="color:var(--ok)">+${fmt(sim.births)}</span><span style="color:var(--ink-3)">·</span><span style="color:var(--bad)">−${fmt(sim.deaths)}</span>`;
+    hudMain = [`<span>live<b>${fmt(sim.alive)}</b></span>`, `<span>ρ<b>${pct(dens)} %</b></span>`];
+  }
   $('tBeh').innerHTML = `<span class="chip ${b.k}">${b.t}</span>`; $('tBehS').textContent = b.s;
-  $('tbBeh').innerHTML = `<span class="chip ${b.k}">${b.t}</span><span>gen <span class="num">${fmt(sim.gen)}</span> · ${fmt(sim.alive)} live</span>`;
-  const hud = [`<span class="run"><span class="dot ${playing ? 'on' : ''}"></span>${playing ? 'running' : 'paused'}</span>`, `<span>gen<b>${fmt(sim.gen)}</b></span>`, `<span>live<b>${fmt(sim.alive)}</b></span>`, `<span>ρ<b>${dens < 1 ? dens.toFixed(2) : dens.toFixed(1)} %</b></span>`];
-  if (V.ok) hud.push(`<span>cubes<b>${fmt(V.count)}</b></span>`);
+  $('tbBeh').innerHTML = `<span class="chip ${b.k}">${b.t}</span><span>gen <span class="num">${fmt(sim.gen)}</span></span>`;
+  const hud = [`<span class="run"><span class="dot ${playing ? 'on' : ''}"></span>${playing ? 'running' : 'paused'}</span>`, `<span>gen<b>${fmt(sim.gen)}</b></span>`, ...hudMain];
+  if (sim.reversed) hud.push('<span style="color:var(--hl)">⇄ time reversed</span>');
+  if (V.ok && V.count) hud.push(`<span>cubes<b>${fmt(V.count)}</b></span>`);
   if (V.trunc) hud.push(`<span style="color:var(--warn)">showing the newest ${fmt(V.cap)}</span>`);
   $('hud').innerHTML = hud.join('');
   drawChart();
@@ -1503,22 +2090,36 @@ function segBind(id, cur, fn) {
   el.querySelectorAll('.seg-b').forEach((b) => { b.classList.toggle('on', b.dataset.v === String(cur)); b.onclick = () => { el.querySelectorAll('.seg-b').forEach((x) => x.classList.toggle('on', x === b)); fn(b.dataset.v); }; });
 }
 function tgl(id, label, on) { return `<label class="tgl"><input type="checkbox" id="${id}" ${on ? 'checked' : ''}><span class="tgl-box"></span>${label}</label>`; }
+const tl = (t) => `<span style="font:12px var(--f-ui);color:var(--ink-2)">${t}</span>`;
+const pField = (c) => fld('nP', '<i>p</i>', 0.05, 1, 0.05, c.p, 'update probability') + `<p class="hint">p = 1 is <b>synchronous</b>: every cell updates at once. Below 1, each cell updates with probability p per step (<b>stochastic updating</b>).</p>`;
 
 function renderRuleGroup() {
   const c = cfg(), m = G.mode; let h = '';
   if (m === '1d') {
     h = fld('r1n', '<i>r</i>', 0, 255, 1, c.rule, 'rule number') + `<div class="r1" id="r1"></div>
       <div class="row"><button class="btn grow" id="r1prev">◂ Prev</button><button class="btn grow" id="r1next">Next ▸</button><button class="btn grow" id="r1rand">Random</button></div>
-      <p class="hint">Each tile is one neighbourhood pattern and the cell it produces. Click a tile to flip its output; the rule number changes with it.</p>`;
+      <p class="hint">Each tile is one neighbourhood pattern and the cell it produces. Click a tile to flip its output; the rule number changes with it.</p>
+      ${tgl('tRev', 'Reversible (second-order): XOR with the row before', c.rev)}`;
+  } else if (m === 'cyc') {
+    h = fld('nK', '<i>κ</i>', 3, 24, 1, c.K, 'colours') + fld('nT', '<i>θ</i>', 1, nbCount(c.R, c.nbh), 1, c.T, 'threshold') + fld('nR', '<i>r</i>', 1, 5, 1, c.R, 'range')
+      + `<div class="lbl">Neighbourhood</div><div class="seg wide" id="nbhSeg"><button class="seg-b" data-v="M">Moore · ${nbCount(c.R, 'M')}</button><button class="seg-b" data-v="VN">von Neumann · ${nbCount(c.R, 'VN')}</button></div>
+      ${tgl('tGH', 'Excitable (Greenberg–Hastings): only resting cells wait for neighbours', c.gh)}` + pField(c);
+  } else if (m === 'cont') {
+    h = `<div class="lbl">Family</div><div class="seg wide" id="famSeg"><button class="seg-b" data-v="lenia">Lenia</button><button class="seg-b" data-v="gs">Reaction–diffusion</button></div>`;
+    if (c.fam === 'lenia') h += fld('nLR', '<i>R</i>', 5, 24, 1, c.R, 'kernel radius') + fld('nMu', '<i>μ</i>', 0.01, 0.6, 0.001, c.mu, 'growth centre') + fld('nSg', '<i>σ</i>', 0.001, 0.1, 0.001, c.sigma, 'growth width') + fld('nDt', tl('dt'), 0.01, 1, 0.01, c.dt, 'time step')
+      + `<div class="lbl">Kernel rings β</div><div class="row"><input class="fld-i mono grow" id="betaIn" value="${c.beta.join(', ')}" aria-label="Kernel ring weights"><button class="btn" id="betaGo">Apply</button></div>
+        <p class="hint">μ and σ set which neighbourhood potential makes a cell grow. β lists the weights of concentric kernel rings, e.g. <span class="num">1</span> or <span class="num">0.5, 1</span>.</p>`;
+    else h += fld('nF', '<i>F</i>', 0, 0.1, 0.0005, c.F, 'feed rate') + fld('nk', '<i>k</i>', 0.03, 0.075, 0.0005, c.k, 'kill rate') + fld('nSub', tl('steps'), 1, 40, 1, c.sub, 'per generation')
+      + `<p class="hint">F feeds chemical u in everywhere; k removes catalyst v. Tiny changes in either switch between spots, stripes and chaos: try the F–k map in Fig. 3.</p>`;
   } else {
     const d3 = m === '3d';
     h = `<div class="lbl">Rule string</div><div class="row"><input class="fld-i mono grow" id="ruleIn" spellcheck="false" autocomplete="off" aria-label="Rule string"><button class="btn" id="ruleGo">Apply</button></div>
-      <p class="hint" id="ruleHint">${d3 ? 'B…/S…/C…/M, e.g. B4/S4/C5/M, or the S/B/C/N form 4/4/5/M. Separate 3-D counts with commas: B5-7,12.' : 'B…/S…, e.g. B3/S23 for Conway\'s Life. Add /C3 for decay states.'}</p>
+      <p class="hint" id="ruleHint">${ruleHint()}</p>
       <div class="lbl">Neighbourhood</div><div class="seg wide" id="nbhSeg"><button class="seg-b" data-v="M">Moore · ${d3 ? 26 : 8}</button><button class="seg-b" data-v="VN">von Neumann · ${d3 ? 6 : 4}</button></div>
       <div class="lbl"><span class="k b">B</span> Born with <i class="m">n</i> live neighbours</div><div class="nums" id="bNums"></div>
       <div class="lbl"><span class="k s">S</span> Survives with <i class="m">n</i> live neighbours</div><div class="nums" id="sNums"></div>
       ${fld('nC', '<i>C</i>', 2, 24, 1, c.C, 'states')}
-      <p class="hint">With more than 2 states, a cell that fails to survive fades through <i class="m">C</i> − 2 dying states first.</p>`;
+      <p class="hint">With more than 2 states, a cell that fails to survive fades through <i class="m">C</i> − 2 dying states first.</p>` + pField(c);
   }
   $('gRule').innerHTML = h;
   if (m === '1d') {
@@ -1526,16 +2127,38 @@ function renderRuleGroup() {
     $('r1prev').onclick = () => setRule1((c.rule + 255) % 256); $('r1next').onclick = () => setRule1((c.rule + 1) % 256);
     $('r1rand').onclick = () => setRule1((Math.random() * 256) | 0);
     $('r1').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setRule1(c.rule ^ (1 << +b.dataset.p)); });
+    $('tRev').onchange = (e) => { c.rev = e.target.checked; markCustom(); refreshRuleUI(); renderFig3(); resetSim(); };
+  } else if (m === 'cyc') {
+    bindFld('nK', (v) => { c.K = v; c.band = 0; for (let i = 0; i < fs.s.length; i++) fs.s[i] %= v; ruleChanged(); }, false);
+    bindFld('nT', (v) => { c.T = v; ruleChanged(); }, false);
+    bindFld('nR', (v) => { c.R = v; c.T = Math.min(c.T, nbCount(v, c.nbh)); ruleChanged(); renderRuleGroup(); }, false);
+    $('tGH').onchange = (e) => { c.gh = e.target.checked; ruleChanged(); };
+    bindFld('nP', (v) => { c.p = v; ruleChanged(); }, false);
+  } else if (m === 'cont') {
+    segBind('famSeg', c.fam, (v) => { if (v === c.fam) return; c.fam = v; c.init = initList()[0][0]; c.colorBy = 'value'; markCustom(); applyMode(false, true); });
+    if (c.fam === 'lenia') {
+      bindFld('nLR', (v) => { c.R = v; ruleChanged(); }, false);
+      bindFld('nMu', (v) => { c.mu = v; ruleChanged(); }, false);
+      bindFld('nSg', (v) => { c.sigma = v; ruleChanged(); }, false);
+      bindFld('nDt', (v) => { c.dt = v; ruleChanged(); }, false);
+      const applyBeta = () => { const b = $('betaIn').value.split(/[,\s]+/).filter(Boolean).map(Number); if (!b.length || b.some((x) => !(x >= 0 && x <= 1)) || b.every((x) => x === 0)) { $('betaIn').classList.add('bad'); return; } $('betaIn').classList.remove('bad'); c.beta = b; ruleChanged(); };
+      $('betaGo').onclick = applyBeta; $('betaIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') applyBeta(); });
+    } else {
+      bindFld('nF', (v) => { c.F = v; ruleChanged(); }, false);
+      bindFld('nk', (v) => { c.k = v; ruleChanged(); }, false);
+      bindFld('nSub', (v) => { c.sub = v; ruleChanged(); }, false);
+    }
   } else {
     $('ruleGo').onclick = applyRuleText;
     $('ruleIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') applyRuleText(); });
-    segBind('nbhSeg', c.nbh, (v) => { c.nbh = v; const mx = maxNb(); c.B = c.B.filter((n) => n <= mx); c.S = c.S.filter((n) => n <= mx); ruleChanged(); });
     const nums = (e) => { const b = e.target.closest('.nb'); if (b) toggleNum(b.dataset.k, +b.dataset.n); };
     $('bNums').addEventListener('click', nums); $('sNums').addEventListener('click', nums);
     bindFld('nC', (v) => { c.C = v; ruleChanged(); }, false);
+    bindFld('nP', (v) => { c.p = v; ruleChanged(); }, false);
   }
   refreshRuleUI();
 }
+const ruleHint = () => (G.mode === '3d' ? 'B…/S…/C…/M, e.g. B4/S4/C5/M, or the S/B/C/N form 4/4/5/M. Separate 3-D counts with commas: B5-7,12.' : 'B…/S…, e.g. B3/S23 for Conway\'s Life. Add /C3 for decay states.');
 function refreshRuleUI() {
   const c = cfg();
   $('tbRule').textContent = ruleString();
@@ -1544,10 +2167,12 @@ function refreshRuleUI() {
     let h = ''; for (let k = 0; k < 8; k++) { const p = 7 - k, bit = (c.rule >> p) & 1, l = (p >> 2) & 1, cc = (p >> 1) & 1, r = p & 1;
       h += `<button data-p="${p}" title="${p.toString(2).padStart(3, '0')} → ${bit}"><svg viewBox="0 0 29 21"><rect x=".5" y=".5" width="9" height="9" class="${l ? 'on' : 'off'}"/><rect x="10" y=".5" width="9" height="9" class="${cc ? 'on' : 'off'}"/><rect x="19.5" y=".5" width="9" height="9" class="${r ? 'on' : 'off'}"/><rect x="10" y="11.5" width="9" height="9" class="${bit ? 'out' : 'off'}"/></svg>${bit}</button>`; }
     $('r1').innerHTML = h;
-  } else {
+  } else if (G.mode === 'cyc') {
+    segBind('nbhSeg', c.nbh, (v) => { c.nbh = v; c.T = Math.min(c.T, nbCount(c.R, v)); ruleChanged(); renderRuleGroup(); });
+  } else if (isLife()) {
     const mx = maxNb();
     for (const [id, k] of [['bNums', 'B'], ['sNums', 'S']]) $(id).innerHTML = range(0, mx).map((n) => `<button class="nb ${k.toLowerCase()} ${c[k].includes(n) ? 'on' : ''}" data-k="${k}" data-n="${n}" aria-pressed="${c[k].includes(n)}">${n}</button>`).join('');
-    $('ruleIn').value = ruleString(); $('ruleIn').classList.remove('bad');
+    $('ruleIn').value = ruleString().replace(/ · p .*$/, ''); $('ruleIn').classList.remove('bad');
     $('nC').value = c.C; $('nCR').value = c.C;
     segBind('nbhSeg', c.nbh, (v) => { c.nbh = v; const m2 = maxNb(); c.B = c.B.filter((n) => n <= m2); c.S = c.S.filter((n) => n <= m2); ruleChanged(); });
   }
@@ -1556,56 +2181,61 @@ function refreshRuleUI() {
 function applyRuleText() {
   const inp = $('ruleIn'), res = parseRule(inp.value, G.mode), hint = $('ruleHint');
   if (res.err) { inp.classList.add('bad'); hint.textContent = res.err; hint.classList.add('bad'); return; }
-  hint.classList.remove('bad');
-  hint.textContent = G.mode === '3d' ? 'B…/S…/C…/M, e.g. B4/S4/C5/M, or the S/B/C/N form 4/4/5/M. Separate 3-D counts with commas: B5-7,12.' : 'B…/S…, e.g. B3/S23 for Conway\'s Life. Add /C3 for decay states.';
+  hint.classList.remove('bad'); hint.textContent = ruleHint();
   Object.assign(cfg(), res.rule); ruleChanged();
 }
 function toggleNum(k, n) { const c = cfg(), a = c[k], i = a.indexOf(n); if (i >= 0) a.splice(i, 1); else { a.push(n); a.sort((x, y) => x - y); } ruleChanged(); }
 function ruleChanged() {
   const c = cfg();
   rebuildRule();
-  if (G.mode === '3d' || G.mode === '2d') {
+  if (isLife()) {
     const s = currentState(); // fewer states: cells beyond the new last state become empty
     for (let i = 0; i < s.length; i++) if (s[i] >= c.C) s[i] = 0;
     afterEdit();
-  }
-  markCustom(); refreshRuleUI(); renderFig3(); renderF4(); renderLookGroup();
+  } else if (isField()) afterEdit();
+  markCustom(); refreshRuleUI(); renderFig3(); renderF4(); renderLookGroup(); renderLegend();
 }
 function setRule1(v) { cfg().rule = clamp(v | 0, 0, 255); markCustom(); refreshRuleUI(); renderFig3(); resetSim(); }
 
+const NLIM = { '3d': [12, 64], '2d': [12, 128], '1d': [21, 301], cyc: [32, 200], cont: [48, 160] };
 function renderSpaceGroup() {
-  const c = cfg(), m = G.mode; let h = '';
-  if (m === '3d') h = fld('nN', '<i>N</i>', 12, 64, 1, c.N, 'cells per side');
-  else if (m === '2d') h = fld('nN', '<i>N</i>', 12, 128, 1, c.N, 'cells per side') + fld('nH', '<i>T</i>', 8, 160, 1, c.H, 'generations shown');
-  else h = fld('nN', '<i>W</i>', 21, 301, 1, c.N, 'cells in the row') + fld('nH', '<i>T</i>', 10, 240, 1, c.H, 'generations shown');
-  h += `<div class="lbl">Edges</div><div class="seg wide" id="wrapSeg"><button class="seg-b" data-v="1">Wrap around</button><button class="seg-b" data-v="0">Fixed, empty border</button></div>`;
+  const c = cfg(), m = G.mode, [n0, n1] = NLIM[m]; let h = '';
+  if (m === '3d') h = fld('nN', '<i>N</i>', n0, n1, 1, c.N, 'cells per side');
+  else if (m === '1d') h = fld('nN', '<i>W</i>', n0, n1, 1, c.N, 'cells in the row') + fld('nH', '<i>T</i>', 10, 240, 1, c.H, 'generations shown');
+  else h = fld('nN', '<i>N</i>', n0, n1, 1, c.N, 'cells per side') + fld('nH', '<i>T</i>', 8, m === '2d' ? 160 : 120, 1, c.H, m === '2d' ? 'generations shown' : 'generations kept');
+  h += `<div class="lbl">Edges</div><div class="seg wide" id="wrapSeg"><button class="seg-b" data-v="1">Wrap around</button><button class="seg-b" data-v="0">Fixed${m === 'cont' && c.fam === 'gs' ? ', sealed' : ', empty border'}</button></div>`;
   if (m === '1d') h += `<div class="lbl">Layout</div><div class="seg wide" id="laySeg"><button class="seg-b" data-v="sheet">Flat sheet</button><button class="seg-b" data-v="cylinder">Cylinder</button></div>`;
   h += `<p class="hint" id="spaceHint"></p>`;
   $('gSpace').innerHTML = h;
-  const hint = () => { const t = totalCells(); $('spaceHint').textContent = m === '3d' ? `${c.N}³ = ${fmt(t)} cells. Wrapped edges join opposite faces, so the volume is a 3-D torus.` : m === '2d' ? `${c.N} × ${c.N} = ${fmt(t)} cells per generation; the last ${c.H} generations are stacked.` : `${c.N} cells; the last ${c.H} generations are shown. Wrapped edges join the two ends of the row.`; };
+  const hint = () => { const t = totalCells(); $('spaceHint').textContent = m === '3d' ? `${c.N}³ = ${fmt(t)} cells. Wrapped edges join opposite faces, so the volume is a 3-D torus.` : m === '2d' ? `${c.N} × ${c.N} = ${fmt(t)} cells per generation; the last ${c.H} generations are stacked.` : m === '1d' ? `${c.N} cells; the last ${c.H} generations are shown. Wrapped edges join the two ends of the row.` : `${c.N} × ${c.N} = ${fmt(t)} cells. The last ${c.H} generations are kept for the time-stack view.`; };
   hint();
   bindFld('nN', (v) => { c.N = v; if (m === '3d') SL.y = v >> 1; hint(); markCustom(); spaceChanged(); }, false);
   if (m !== '3d') bindFld('nH', (v) => { c.H = v; hint(); markCustom(); spaceChanged(); }, false);
-  segBind('wrapSeg', c.wrap ? '1' : '0', (v) => { c.wrap = v === '1'; markCustom(); if (m === '1d') resetSim(); else { rebuildRule(); afterEdit(); } renderChips(); });
+  segBind('wrapSeg', c.wrap ? '1' : '0', (v) => { c.wrap = v === '1'; markCustom(); if (m === '1d' || (m === 'cont' && c.fam === 'gs')) resetSim(); else { rebuildRule(); afterEdit(); } renderChips(); });
   if (m === '1d') segBind('laySeg', c.layout, (v) => { c.layout = v; buildHelpers(); instDirty = true; setView('iso'); renderChips(); });
 }
 function spaceChanged() { resetSim(); buildHelpers(); setView('fit'); renderF4(); renderChips(); }
 
 const INITS = {
-  '3d': [['cube', 'Random cube at the centre'], ['sphere', 'Random ball at the centre'], ['full', 'Random everywhere'], ['single', 'A single cell'], ['cross', '3-D cross'], ['custom', 'Your drawing']],
-  '2d': [['soup', 'Random square at the centre'], ['full', 'Random everywhere'], ['single', 'A single cell'], ['line', 'A straight line'], ['glider', 'Glider'], ['lwss', 'Lightweight spaceship'], ['rpent', 'R-pentomino'], ['acorn', 'Acorn'], ['diehard', 'Diehard'], ['pulsar', 'Pulsar'], ['gun', 'Gosper glider gun'], ['custom', 'Your drawing']],
+  '3d': [['cube', 'Random cube at the centre'], ['sphere', 'Random ball at the centre'], ['full', 'Random everywhere'], ['states', 'Random states, all C'], ['single', 'A single cell'], ['cross', '3-D cross'], ['custom', 'Your drawing']],
+  '2d': [['soup', 'Random square at the centre'], ['full', 'Random everywhere'], ['states', 'Random states, all C'], ['single', 'A single cell'], ['line', 'A straight line'], ['glider', 'Glider'], ['lwss', 'Lightweight spaceship'], ['rpent', 'R-pentomino'], ['acorn', 'Acorn'], ['diehard', 'Diehard'], ['pulsar', 'Pulsar'], ['gun', 'Gosper glider gun'], ['custom', 'Your drawing']],
   '1d': [['single', 'A single cell'], ['pair', 'Two cells'], ['random', 'Random row'], ['custom', 'Your drawing']],
+  cyc: [['random', 'Random colours everywhere'], ['patch', 'Random colours in a square'], ['spiral', 'One spiral core'], ['twin', 'Two opposite spiral cores'], ['custom', 'Your drawing']],
+  lenia: [['orbium', 'Orbium'], ['blobs', 'Random blobs'], ['noise', 'Random square'], ['single', 'A single smooth blob'], ['custom', 'Your drawing']],
+  gs: [['seed', 'A seed in the centre'], ['scatter', 'Scattered seeds'], ['noise', 'Random square'], ['custom', 'Your drawing']],
 };
+const initList = () => (G.mode === 'cont' ? INITS[cfg().fam] : INITS[G.mode]);
+function hasCustomSeed() { const c = cfg(), cu = custom[G.mode]; return !!cu && cu.N === c.N && (G.mode !== 'cont' || cu.fam === c.fam); }
 function renderInitGroup() {
-  const c = cfg(), m = G.mode, hasCustom = custom[m] && custom[m].N === c.N;
-  if (c.init === 'custom' && !hasCustom) c.init = INITS[m][0][0];
-  const needSize = (m === '3d' && ['cube', 'sphere', 'cross'].includes(c.init)) || (m === '2d' && ['soup', 'line'].includes(c.init));
-  const needDens = (m === '3d' && ['cube', 'sphere', 'full'].includes(c.init)) || (m === '2d' && ['soup', 'full'].includes(c.init)) || (m === '1d' && c.init === 'random');
-  let h = `<select class="sel" id="initSel" aria-label="Starting state">${INITS[m].map(([v, l]) => `<option value="${v}" ${v === 'custom' && !hasCustom ? 'disabled' : ''}>${l}${v === 'custom' && !hasCustom ? ' (draw in Fig. 4)' : ''}</option>`).join('')}</select>`;
+  const c = cfg(), m = G.mode, list = initList(), hasCustom = hasCustomSeed();
+  if (!list.some(([v]) => v === c.init) || (c.init === 'custom' && !hasCustom)) c.init = list[0][0];
+  const needSize = (m === '3d' && ['cube', 'sphere', 'cross'].includes(c.init)) || (m === '2d' && ['soup', 'line'].includes(c.init)) || (m === 'cyc' && c.init === 'patch') || (m === 'cont' && c.init === 'noise');
+  const needDens = (m === '3d' && ['cube', 'sphere', 'full', 'states'].includes(c.init)) || (m === '2d' && ['soup', 'full', 'states'].includes(c.init)) || (m === '1d' && c.init === 'random') || (m === 'cont' && ['blobs', 'noise', 'scatter'].includes(c.init));
+  let h = `<select class="sel" id="initSel" aria-label="Starting state">${list.map(([v, l]) => `<option value="${v}" ${v === 'custom' && !hasCustom ? 'disabled' : ''}>${l}${v === 'custom' && !hasCustom ? ' (draw in Fig. 4)' : ''}</option>`).join('')}</select>`;
   if (needSize) h += fld('nSize', '<i>k</i>', 1, c.N, 1, Math.min(c.size, c.N), 'cells across');
-  if (needDens) h += fld('nDens', '<i>ρ</i>', 0.02, 1, 0.01, c.density, 'fill density');
+  if (needDens) h += fld('nDens', '<i>ρ</i>', 0.02, 1, 0.01, c.density, ['blobs', 'scatter'].includes(c.init) ? 'how many' : 'fill density');
   h += `<div class="fld"><label class="fld-l t" for="nSeed">seed</label><input class="fld-i" id="nSeed" type="number" min="0" max="999999" step="1" value="${G.seed}"><button class="btn" id="seedNew" title="Pick a new random seed">New</button></div>
-    <p class="hint">The same seed always gives the same random start, so a result can be repeated and shared.</p>`;
+    <p class="hint">The same seed always gives the same random start (and the same random updates when p &lt; 1), so a result can be repeated and shared.</p>`;
   $('gInit').innerHTML = h;
   $('initSel').value = c.init;
   $('initSel').onchange = (e) => { c.init = e.target.value; markCustom(); renderInitGroup(); resetSim(); };
@@ -1615,61 +2245,90 @@ function renderInitGroup() {
   $('seedNew').onclick = () => { G.seed = (Math.random() * 999999) | 0; $('nSeed').value = G.seed; resetSim(); renderChips(); if (!playing && G.mode !== '1d') setPlaying(true); };
 }
 function renderLookGroup() {
-  const c = cfg(), m = G.mode;
-  let h = `<div class="lbl">Colour map</div><div class="seg wide cmseg" id="cmapSeg">${Object.entries(CMAPS).map(([k, v]) => `<button class="seg-b" data-v="${k}">${v.name}<span class="sw" style="background:${v.css}"></span></button>`).join('')}</div>`;
-  h += fld('nCell', '<span class="t" style="font:12px var(--f-ui);color:var(--ink-2)">cube</span>', 0.3, 1, 0.02, G.cell, 'of a cell');
-  if (m !== '3d') h += fld('nTs', '<span style="font:12px var(--f-ui);color:var(--ink-2)">time</span>', 0.2, 2, 0.05, c.tscale, 'layer spacing');
-  h += `<div class="row" style="gap:8px 18px">${tgl('tOut', 'Cube outlines', G.outlines)}${m !== '1d' ? tgl('tDying', 'Show dying cells', c.showDying) : ''}</div>`;
-  if (m !== '1d' && c.C <= 2) h += `<p class="hint">“Show dying cells” matters only for rules with more than 2 states.</p>`;
+  const c = cfg(), m = G.mode, field = isField(), stack = field && c.view === 'stack';
+  let h = '';
+  if (field) h += `<div class="lbl">View</div><div class="seg wide" id="viewSeg"><button class="seg-b" data-v="surface">Height surface</button><button class="seg-b" data-v="stack">Stacked in time</button></div>`;
+  h += `<div class="lbl">Colour map</div><div class="seg wide cmseg" id="cmapSeg">${Object.entries(CMAPS).map(([k, v]) => `<button class="seg-b" data-v="${k}">${v.name}<span class="sw" style="background:${v.css}"></span></button>`).join('')}</div>`;
+  if (field && !stack) h += fld('nHs', tl('height'), 0, 3, 0.05, c.hscale, '× relief');
+  else {
+    h += fld('nCell', tl('cube'), 0.3, 1, 0.02, G.cell, 'of a cell');
+    if (m !== '3d') h += fld('nTs', tl('time'), 0.2, 2, 0.05, c.tscale, 'layer spacing');
+    if (stack && m === 'cyc') h += fld('nBand', tl('show'), 1, c.K - 1, 1, c.band || Math.max(1, Math.ceil(c.K / 3)), `of ${c.K} colours`);
+    if (stack && m === 'cont') h += fld('nIso', tl('above'), 0.02, 0.98, 0.01, c.iso, 'value drawn');
+    h += `<div class="row" style="gap:8px 18px">${tgl('tOut', 'Cube outlines', G.outlines)}${isLife() ? tgl('tDying', 'Show dying cells', c.showDying) : ''}</div>`;
+    if (isLife() && c.C <= 2) h += `<p class="hint">“Show dying cells” matters only for rules with more than 2 states.</p>`;
+  }
   $('gLook').innerHTML = h;
-  segBind('cmapSeg', G.cmap, (v) => { G.cmap = v; instDirty = true; sliceDirty = true; renderLegend(); });
-  bindFld('nCell', (v) => { G.cell = v; instDirty = true; placePickBox(); });
-  if (m !== '3d') bindFld('nTs', (v) => { c.tscale = v; buildHelpers(); instDirty = true; placePickBox(); });
-  $('tOut').onchange = (e) => { G.outlines = e.target.checked; if (V.ok) { V.mat.map = G.outlines ? V.tex : null; V.mat.needsUpdate = true; camDirty = true; } };
-  if ($('tDying')) $('tDying').onchange = (e) => { c.showDying = e.target.checked; instDirty = true; };
+  if (field) segBind('viewSeg', c.view, (v) => { c.view = v; markCustom(); clearPick(); renderLookGroup(); renderColorSeg(); buildHelpers(); instDirty = true; setView('iso'); renderTitles(); });
+  segBind('cmapSeg', G.cmap, (v) => { G.cmap = v; instDirty = true; sliceDirty = true; renderLegend(); if (G.mode === 'cont' && cfg().fam === 'lenia') drawKernelImage(); });
+  if (field && !stack) bindFld('nHs', (v) => { c.hscale = v; buildHelpers(); instDirty = true; placePickBox(); });
+  else {
+    bindFld('nCell', (v) => { G.cell = v; instDirty = true; placePickBox(); });
+    if (m !== '3d') bindFld('nTs', (v) => { c.tscale = v; buildHelpers(); instDirty = true; placePickBox(); });
+    if ($('nBand')) bindFld('nBand', (v) => { c.band = v; instDirty = true; });
+    if ($('nIso')) bindFld('nIso', (v) => { c.iso = v; instDirty = true; });
+    $('tOut').onchange = (e) => { G.outlines = e.target.checked; if (V.ok) { V.mat.map = G.outlines ? V.tex : null; V.mat.needsUpdate = true; camDirty = true; } };
+    if ($('tDying')) $('tDying').onchange = (e) => { c.showDying = e.target.checked; instDirty = true; };
+  }
 }
 const COLOR_BY = {
   '3d': [['state', 'State'], ['neighbours', 'Neighbours'], ['age', 'Age'], ['distance', 'Distance'], ['height', 'Height'], ['plain', 'Plain']],
   '2d': [['time', 'Time'], ['state', 'State'], ['neighbours', 'Neighbours'], ['age', 'Age'], ['plain', 'Plain']],
   '1d': [['time', 'Time'], ['pattern', 'Pattern'], ['age', 'Age'], ['plain', 'Plain']],
 };
-function renderColorSeg() {
+function colorOpts() {
   const c = cfg();
-  if (!COLOR_BY[G.mode].some(([k]) => k === c.colorBy)) c.colorBy = COLOR_BY[G.mode][0][0];
-  $('colorSeg').innerHTML = COLOR_BY[G.mode].map(([k, l]) => `<button class="seg-b" data-v="${k}">${l}</button>`).join('');
+  if (G.mode === 'cyc') return c.view === 'stack' ? [['state', 'Colour'], ['time', 'Time'], ['plain', 'Plain']] : [['state', 'Colour'], ['plain', 'Plain']];
+  if (G.mode === 'cont') return c.view === 'stack' ? [['value', 'Value'], ['time', 'Time'], ['plain', 'Plain']] : [['value', 'Value'], ['growth', c.fam === 'gs' ? 'Change' : 'Growth'], ['plain', 'Plain']];
+  return COLOR_BY[G.mode];
+}
+function renderColorSeg() {
+  const c = cfg(), opts = colorOpts();
+  if (!opts.some(([k]) => k === c.colorBy)) c.colorBy = opts[0][0];
+  $('colorSeg').innerHTML = opts.map(([k, l]) => `<button class="seg-b" data-v="${k}">${l}</button>`).join('');
   segBind('colorSeg', c.colorBy, (v) => { c.colorBy = v; instDirty = true; sliceDirty = true; renderLegend(); if (G.mode === '1d') renderFig3(); });
   renderLegend();
 }
 function renderLegend() {
-  const c = cfg(), cb = c.colorBy, mx = maxNb();
-  const L = { state: ['state', c.C > 2 ? 'last dying' : 'alive', 'alive'], neighbours: ['live neighbours', '0', String(mx)], age: ['age', '1 gen', '64+ gens'], distance: ['distance from centre', 'centre', 'edge'],
-    height: ['height', 'bottom', 'top'], time: ['generation', 'oldest', 'newest'], pattern: ['pattern that made the cell', '000', '111'], plain: ['plain colour', '', ''] }[cb];
+  const c = cfg(), cb = c.colorBy, mx = maxNb(), gs = c.fam === 'gs';
+  const L = { state: G.mode === 'cyc' ? ['colour (state)', '0', String(c.K - 1)] : ['state', c.C > 2 ? 'last dying' : 'alive', 'alive'], neighbours: ['live neighbours', '0', String(mx)], age: ['age', '1 gen', '64+ gens'], distance: ['distance from centre', 'centre', 'edge'],
+    height: ['height', 'bottom', 'top'], time: ['generation', 'oldest', 'newest'], pattern: ['pattern that made the cell', '000', '111'], plain: ['plain colour', '', ''],
+    value: gs ? ['catalyst v', '0', '0.45+'] : ['cell value', '0', '1'], growth: gs ? ['change in v', 'falling', 'rising'] : ['growth G(U)', 'shrinking', 'growing'] }[cb] || ['', '', ''];
   $('cbName').textContent = L[0]; $('cbMin').textContent = L[1]; $('cbMax').textContent = L[2];
   const cv = $('cbCanvas'), x = cv.getContext('2d');
   cv.style.display = cb === 'plain' ? 'none' : '';
   const lutc = CMAPS[G.cmap].lut;
   for (let i = 0; i < cv.width; i++) { const li = Math.floor((i / (cv.width - 1)) * 255) * 3; x.fillStyle = `rgb(${lutc[li] * 255 | 0},${lutc[li + 1] * 255 | 0},${lutc[li + 2] * 255 | 0})`; x.fillRect(i, 0, 1, cv.height); }
-  $('cbNote').textContent = G.mode === '3d' ? 'hidden interior cubes are skipped' : G.mode === '2d' ? 'time runs upward, one layer per generation' : 'time runs downward, one row per generation';
+  $('cbNote').textContent = G.mode === '3d' ? 'hidden interior cubes are skipped' : G.mode === '2d' ? 'time runs upward, one layer per generation' : G.mode === '1d' ? 'time runs downward, one row per generation'
+    : c.view === 'stack' ? (G.mode === 'cyc' ? 'time runs upward; only the first colours of the wheel are drawn' : 'time runs upward; only cells above the threshold are drawn') : G.mode === 'cyc' ? 'height rises and falls once round the colour wheel' : 'height shows each cell\'s value';
 }
 function renderChips() {
   const c = cfg(), m = G.mode, ch = [];
-  ch.push(['r', m === '1d' ? `rule <span class="num">${c.rule}</span>` : `<span class="num">${esc(ruleString())}</span>`]);
-  ch.push(['N', m === '3d' ? `<span class="num">${c.N}³</span> cells` : m === '2d' ? `<span class="num">${c.N}×${c.N}</span> × ${c.H} gens` : `<span class="num">${c.N}</span> cells × ${c.H} gens`]);
+  ch.push(['r', m === '1d' ? `rule <span class="num">${c.rule}${c.rev ? 'R' : ''}</span>` : `<span class="num">${esc(ruleString())}</span>`]);
+  ch.push(['N', m === '3d' ? `<span class="num">${c.N}³</span> cells` : m === '2d' ? `<span class="num">${c.N}×${c.N}</span> × ${c.H} gens` : m === '1d' ? `<span class="num">${c.N}</span> cells × ${c.H} gens` : `<span class="num">${c.N}×${c.N}</span> cells`]);
   ch.push(['∂', c.wrap ? 'wrapped edges' : 'fixed edges']);
-  if (m !== '1d') ch.push(['C', `<span class="num">${c.C}</span> states`]);
+  if (isLife()) ch.push(['C', `<span class="num">${c.C}</span> states`]);
+  if (m === 'cyc') ch.push(['κ', `<span class="num">${c.K}</span> colours`]);
+  if (c.p !== undefined && c.p < 1) ch.push(['p', `updates with p = <span class="num">${c.p}</span>`]);
   if (m === '1d') ch.push(['L', c.layout === 'cylinder' ? 'cylinder' : 'flat sheet']);
+  if (isField()) ch.push(['v', c.view === 'stack' ? 'stacked in time' : 'height surface']);
   ch.push(['s', `seed <span class="num">${G.seed}</span>`]);
   $('pchips').innerHTML = ch.map(([i, t]) => `<span class="pchip"><i>${i}</i>${t}</span>`).join('');
   $('tbRule').textContent = ruleString();
 }
+function renderTitles() {
+  const m = G.mode, stack = isField() && cfg().view === 'stack';
+  $('f1title').textContent = m === '3d' ? 'The automaton in 3-D' : m === '2d' ? 'A 2-D rule through time: each layer is one generation' : m === '1d' ? 'A 1-D rule through time: each row is one generation'
+    : m === 'cyc' ? (stack ? 'A cyclic automaton through time' : 'A cyclic automaton as a landscape: height shows each cell\'s place on the colour wheel') : (stack ? 'A continuous automaton through time' : 'A continuous automaton: height shows each cell\'s value');
+}
+function updateRevBtn() { $('revBtn').hidden = !(G.mode === '1d' && cfg().rev); }
 
 /* =====================================================================
    Cases, modes, URL state
    ===================================================================== */
 function buildCaseSelect() {
-  const groups = { '3d': '3-D volume', '2d': '2-D through time', '1d': '1-D through time' };
   let h = `<option value="" id="optCustom" hidden>Your own settings</option>`;
-  for (const g of ['3d', '2d', '1d']) h += `<optgroup label="${groups[g]}">${CASES.filter((c) => c.g === g).map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</optgroup>`;
+  for (const g of MODES) h += `<optgroup label="${MODE_NAME[g]}">${CASES.filter((c) => c.g === g).map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</optgroup>`;
   $('caseSel').innerHTML = h;
   $('caseSel').onchange = (e) => { if (e.target.value) applyCase(e.target.value); };
   $('caseReset').onclick = () => { if (G.caseId) applyCase(G.caseId); else { M[G.mode] = clone(DEF[G.mode]); applyMode(true); } };
@@ -1680,23 +2339,26 @@ function markCustom() {
   const cs = CASE_BY_ID[G.caseId];
   $('caseNote').innerHTML = cs && cs.g === G.mode ? `<b>Modified from “${esc(cs.name)}”.</b> Reset restores the original. ${cs.note.replace(/<b>.*?<\/b>\s*/, '')}` : '<b>Your own settings.</b> Use Copy link to save them.';
 }
+function setSpeed(v) { G.speed = v; $('speed').value = v; $('speedV').textContent = v + ' /s'; }
 function applyCase(id, opts = {}) {
   const cs = CASE_BY_ID[id]; if (!cs) return;
   G.caseId = caseOf[cs.g] = id; G.mode = cs.g; visited[cs.g] = true;
   M[cs.g] = Object.assign(clone(DEF[cs.g]), clone(cs.c));
   G.seed = cs.seed !== undefined ? cs.seed : 1;
+  G.cmap = cs.cmap || 'spectrum';
+  setSpeed(cs.speed || 12);
   if (cs.g === '3d') SL.y = M['3d'].N >> 1;
   applyMode(false);
   $('caseSel').value = id; $('optCustom').hidden = true;
   $('caseNote').innerHTML = cs.note;
   if (!opts.paused && cs.g !== '1d') setPlaying(true); else setPlaying(false);
 }
-function applyMode(fromSeg) {
+function applyMode(fromSeg, keepNote) {
   segBind('modeSeg', G.mode, onModeSeg);
-  if (fromSeg) { $('caseNote').innerHTML = '<b>Your own settings.</b>'; }
-  $('f1title').textContent = G.mode === '3d' ? 'The automaton in 3-D' : G.mode === '2d' ? 'A 2-D rule through time: each layer is one generation' : 'A 1-D rule through time: each row is one generation';
+  if (fromSeg) $('caseNote').innerHTML = '<b>Your own settings.</b>';
+  renderTitles();
   renderRuleGroup(); renderSpaceGroup(); renderInitGroup(); renderLookGroup(); renderColorSeg();
-  resetSim(); buildHelpers(); setView('iso'); renderFig3(); renderF4(); renderChips();
+  resetSim(); buildHelpers(); setView('iso'); renderFig3(); renderF4(); renderChips(); updateRevBtn();
 }
 function onModeSeg(m) {
   if (m === G.mode) return;
@@ -1705,25 +2367,27 @@ function onModeSeg(m) {
   applyMode(false);
   const cs = CASE_BY_ID[G.caseId];
   $('optCustom').hidden = false; $('caseSel').value = '';
-  $('caseNote').innerHTML = `<b>Back to the ${m === '3d' ? '3-D volume' : m === '2d' ? '2-D' : '1-D'} settings you had.</b> ` + (cs ? `Reset restores “${esc(cs.name)}” as it was first loaded.` : 'Pick a case to start fresh.');
+  $('caseNote').innerHTML = `<b>Back to the ${MODE_NAME[m]} settings you had.</b> ` + (cs ? `Reset restores “${esc(cs.name)}” as it was first loaded.` : 'Pick a case to start fresh.');
   if (m !== '1d') setPlaying(true);
 }
 function encodeState() {
-  const c = clone(cfg()); if (c.init === 'custom') c.init = INITS[G.mode][0][0];
-  const o = { v: 1, m: G.mode, k: G.caseId, g: { seed: G.seed, cmap: G.cmap, cell: G.cell, outlines: G.outlines, box: G.box, floor: G.floor, spin: G.spin, speed: G.speed }, c };
+  const c = clone(cfg()); if (c.init === 'custom') c.init = initList()[0][0];
+  const o = { v: 2, m: G.mode, k: G.caseId, g: { seed: G.seed, cmap: G.cmap, cell: G.cell, outlines: G.outlines, box: G.box, floor: G.floor, spin: G.spin, speed: G.speed }, c };
   return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/=+$/, '');
 }
+const LIM = { H: [8, 240], K: [3, 24], T: [1, 120], mu: [0.01, 0.6], sigma: [0.001, 0.1], dt: [0.01, 1], F: [0, 0.1], k: [0.03, 0.075], sub: [1, 40], C: [2, 24], rule: [0, 255], p: [0.05, 1], hscale: [0, 3], tscale: [0.2, 2], iso: [0.02, 0.98], band: [0, 23], size: [1, 301], density: [0.02, 1] };
 function decodeState(h) {
   try {
     const o = JSON.parse(decodeURIComponent(escape(atob(h))));
-    if (!o || !['3d', '2d', '1d'].includes(o.m) || typeof o.c !== 'object') return false;
+    if (!o || !MODES.includes(o.m) || typeof o.c !== 'object') return false;
     const base = clone(DEF[o.m]);
-    for (const k in base) if (o.c[k] !== undefined && typeof o.c[k] === typeof base[k]) base[k] = o.c[k];
-    if (o.m !== '1d') {
-      const mx = o.m === '3d' ? (base.nbh === 'VN' ? 6 : 26) : base.nbh === 'VN' ? 4 : 8;
-      base.B = base.B.map(Number).filter((n) => n >= 0 && n <= mx); base.S = base.S.map(Number).filter((n) => n >= 0 && n <= mx); base.C = clamp(base.C | 0, 2, 24);
-      base.N = clamp(base.N | 0, 12, o.m === '3d' ? 64 : 128); if (o.m === '2d') base.H = clamp(base.H | 0, 8, 160);
-    } else { base.rule = clamp(base.rule | 0, 0, 255); base.N = clamp(base.N | 0, 21, 301); base.H = clamp(base.H | 0, 10, 240); }
+    for (const k in base) if (o.c[k] !== undefined && typeof o.c[k] === typeof base[k] && Array.isArray(o.c[k]) === Array.isArray(base[k])) base[k] = o.c[k];
+    for (const k in LIM) if (typeof base[k] === 'number') base[k] = clamp(+base[k] || 0, LIM[k][0], LIM[k][1]);
+    base.N = clamp(base.N | 0, NLIM[o.m][0], NLIM[o.m][1]);
+    if (isLife(o.m)) { const mx = o.m === '3d' ? (base.nbh === 'VN' ? 6 : 26) : base.nbh === 'VN' ? 4 : 8; base.B = base.B.map(Number).filter((n) => n >= 0 && n <= mx); base.S = base.S.map(Number).filter((n) => n >= 0 && n <= mx); base.C = base.C | 0; }
+    if (o.m === '1d') base.rule = base.rule | 0;
+    if (o.m === 'cyc') { base.R = clamp(base.R | 0, 1, 5); base.T = clamp(base.T | 0, 1, nbCount(base.R, base.nbh)); base.K = base.K | 0; }
+    if (o.m === 'cont') { base.R = clamp(base.R | 0, 5, 24); base.fam = base.fam === 'gs' ? 'gs' : 'lenia'; base.beta = base.beta.map(Number).filter((x) => x >= 0 && x <= 1); if (!base.beta.length) base.beta = [1]; }
     const g = o.g || {};
     if (Number.isFinite(g.seed)) G.seed = clamp(g.seed | 0, 0, 999999);
     if (CMAPS[g.cmap]) G.cmap = g.cmap;
@@ -1749,7 +2413,7 @@ function savePNG() {
   const src = V.renderer.domElement, c = document.createElement('canvas'); c.width = src.width; c.height = src.height;
   const x = c.getContext('2d'), g = x.createRadialGradient(c.width / 2, c.height * 0.35, 0, c.width / 2, c.height * 0.35, Math.max(c.width, c.height) * 0.75);
   g.addColorStop(0, TC.v3bg); g.addColorStop(1, TC.v3bg2); x.fillStyle = g; x.fillRect(0, 0, c.width, c.height); x.drawImage(src, 0, 0);
-  const a = document.createElement('a'); a.download = `cellular-automaton-${ruleString().replace(/[^A-Za-z0-9-]+/g, '_')}-gen${sim.gen}.png`; a.href = c.toDataURL('image/png'); a.click();
+  const a = document.createElement('a'); a.download = `cellular-automaton-${ruleString().replace(/[^A-Za-z0-9-]+/g, '_').slice(0, 60)}-gen${sim.gen}.png`; a.href = c.toDataURL('image/png'); a.click();
   toast('Image saved.');
 }
 
@@ -1759,7 +2423,7 @@ function savePNG() {
 function setPlaying(p) {
   playing = p;
   $('playBtn').innerHTML = p ? '<svg viewBox="0 0 12 12"><rect x="2" y="1.5" width="3" height="9"/><rect x="7" y="1.5" width="3" height="9"/></svg>Pause' : '<svg viewBox="0 0 12 12"><path d="M2.5 1.5 L10.5 6 L2.5 10.5 Z"/></svg>Play';
-  if (p && G.mode !== '1d' && sim.occ === 0) { playing = false; setPlaying(false); toast('Nothing is alive. Restart, or draw some cells in Fig. 4.'); return; }
+  if (p && isLife() && sim.occ === 0) { playing = false; setPlaying(false); toast('Nothing is alive. Restart, or draw some cells in Fig. 4.'); return; }
   uiDirty = true;
 }
 function dismissHint() { const h = $('v3hint'); if (!h.hidden) { h.hidden = true; lsSet('cae-hint', '1'); } }
@@ -1771,10 +2435,11 @@ function applyTheme(t) {
 function bindStatic() {
   $('playBtn').onclick = () => setPlaying(!playing);
   $('stepBtn').onclick = () => { setPlaying(false); stepSim(); };
+  $('revBtn').onclick = () => reverseTime();
   $('restartBtn').onclick = () => { resetSim(); };
   document.querySelectorAll('[data-view]').forEach((b) => (b.onclick = () => setView(b.dataset.view)));
-  $('speed').value = G.speed; $('speedV').textContent = G.speed + ' /s';
-  $('speed').oninput = (e) => { G.speed = +e.target.value; $('speedV').textContent = G.speed + ' /s'; };
+  setSpeed(G.speed);
+  $('speed').oninput = (e) => setSpeed(+e.target.value);
   $('tBox').checked = G.box; $('tFloor').checked = G.floor; $('tSpin').checked = G.spin;
   $('tBox').onchange = (e) => { G.box = e.target.checked; if (V.boxObj) V.boxObj.visible = G.box; camDirty = true; };
   $('tFloor').onchange = (e) => { G.floor = e.target.checked; if (V.floorObj) V.floorObj.visible = G.floor; camDirty = true; };
@@ -1834,7 +2499,7 @@ if (fromHash) {
   if (pristine) { $('caseSel').value = G.caseId; $('optCustom').hidden = true; $('caseNote').innerHTML = cs.note; }
   else if (cs && cs.g === G.mode) markCustom();
   else { G.caseId = caseOf[G.mode] = ''; $('optCustom').hidden = false; $('caseSel').value = ''; $('caseNote').innerHTML = '<b>Opened from a shared link.</b> Pick a case to start fresh.'; }
-  $('speed').value = G.speed; $('speedV').textContent = G.speed + ' /s'; $('tBox').checked = G.box; $('tFloor').checked = G.floor; $('tSpin').checked = G.spin;
+  setSpeed(G.speed); $('tBox').checked = G.box; $('tFloor').checked = G.floor; $('tSpin').checked = G.spin;
   if (V.ok) { V.mat.map = G.outlines ? V.tex : null; V.mat.needsUpdate = true; }
   setPlaying(G.mode !== '1d');
 } else applyCase('symmetry');
